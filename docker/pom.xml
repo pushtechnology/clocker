@@ -39,7 +39,14 @@
             <version>${brooklyn.version}</version>
             <exclusions>
                 <exclusion>
-                    <!-- Excluded because of group name change -->
+                    <groupId>io.brooklyn</groupId>
+                    <artifactId>brooklyn-software-base</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.brooklyn</groupId>
+                    <artifactId>brooklyn-locations-jclouds</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>io.brooklyn</groupId>
                     <artifactId>brooklyn-core</artifactId>
                 </exclusion>
