@@ -249,6 +249,7 @@ public class DockerInfrastructureImpl extends BasicStartableImpl implements Dock
             }
         });
 
+        setAttribute(LOCATION_DEFINITION, definition);
         setAttribute(DYNAMIC_LOCATION, location);
         setAttribute(LOCATION_NAME, location.getId());
 
@@ -265,8 +266,13 @@ public class DockerInfrastructureImpl extends BasicStartableImpl implements Dock
             if (mgr.isManaged(location)) {
                 mgr.unmanage(location);
             }
+            final LocationDefinition definition = getAttribute(LOCATION_DEFINITION);
+            if (definition != null) {
+                getManagementContext().getLocationRegistry().removeDefinedLocation(definition.getId());
+            }
         }
 
+        setAttribute(LOCATION_DEFINITION, null);
         setAttribute(DYNAMIC_LOCATION, null);
         setAttribute(LOCATION_NAME, null);
     }
