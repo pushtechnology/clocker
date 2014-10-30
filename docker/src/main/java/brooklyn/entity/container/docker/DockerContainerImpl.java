@@ -179,24 +179,31 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     }
 
     @Override
+    public void startUp() {
+        String dockerContainerName = getAttribute(DockerContainer.DOCKER_CONTAINER_NAME);
+        LOG.info("Start-Up {}", dockerContainerName);
+        getDockerHost().runDockerCommand("start " + getContainerId());
+    }
+
+    @Override
     public void shutDown() {
         String dockerContainerName = getAttribute(DockerContainer.DOCKER_CONTAINER_NAME);
         LOG.info("Shut-Down {}", dockerContainerName);
-        getDockerHost().runDockerCommand("kill " + getContainerId());
+        getDockerHost().runDockerCommand("stop " + getContainerId());
     }
 
     @Override
     public void pause() {
         String dockerContainerName = getAttribute(DockerContainer.DOCKER_CONTAINER_NAME);
         LOG.info("Pausing {}", dockerContainerName);
-        getDockerHost().runDockerCommand("stop " + getContainerId());
+        getDockerHost().runDockerCommand("pause " + getContainerId());
     }
 
     @Override
     public void resume() {
         String dockerContainerName = getAttribute(DockerContainer.DOCKER_CONTAINER_NAME);
         LOG.info("Resume {}", dockerContainerName);
-        getDockerHost().runDockerCommand("start" + getContainerId());
+        getDockerHost().runDockerCommand("unpause " + getContainerId());
     }
 
     private DockerTemplateOptions getDockerTemplateOptions() {

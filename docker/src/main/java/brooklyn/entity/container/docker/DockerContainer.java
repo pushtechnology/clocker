@@ -104,19 +104,25 @@ public interface DockerContainer extends BasicStartable, HasShortName, LocationO
     MethodEffector<Void> RESUME = new MethodEffector<Void>(DockerContainer.class, "resume");
 
     /**
-     * Shut-down the Docker container.
+     * Start-up the Docker container. Invokes docker start.
+     */
+    @Effector(description="Start-up the Docker container")
+    void startUp();
+
+    /**
+     * Shut-down the Docker container. Invokes docker stop.
      */
     @Effector(description="Shut-down the Docker container")
     void shutDown();
 
     /**
-     * Pause the Docker container.
+     * Pause the Docker container. Invokes docker pause.
      */
     @Effector(description="Pause the Docker container")
     void pause();
 
     /**
-     * Resume the Docker container.
+     * Resume the Docker container. Invokes docker unpause.
      */
     @Effector(description="Resume the Docker container")
     void resume();
