@@ -257,9 +257,11 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
     @Override
     public void install() {
-        OsDetails osDetails = getMachine().getMachineDetails().getOsDetails();
-        String osVersion = osDetails.getVersion();
-        String arch = osDetails.getArch();
+        final String version = getVersion();
+
+        final OsDetails osDetails = getMachine().getMachineDetails().getOsDetails();
+        final String osVersion = osDetails.getVersion();
+        final String arch = osDetails.getArch();
         if (!osDetails.is64bit()) { throw new IllegalStateException("Docker supports only 64bit OS"); }
         log.debug("Installing Docker on {} version {}", osDetails.getName(), osVersion);
         if (osDetails.isLinux()) {
@@ -306,10 +308,10 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         // Wait until the Docker host is SSHable after the reboot
         // Don't check immediately; it could take a few seconds for rebooting to make the machine not ssh'able;
         // must not accidentally think it's rebooted before we've actually rebooted!
-        Stopwatch stopwatchForReboot = Stopwatch.createStarted();
+        final Stopwatch stopwatchForReboot = Stopwatch.createStarted();
         Time.sleep(Duration.seconds(30));
 
-        Task<Boolean> sshable = TaskBuilder.<Boolean> builder()
+        final Task<Boolean> sshable = TaskBuilder.<Boolean> builder()
                 .name("Waiting until host is SSHable")
                 .body(new Callable<Boolean>() {
                     @Override
@@ -326,7 +328,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                     }
                 })
                 .build();
-        Boolean result = DynamicTasks.queueIfPossible(sshable)
+        final Boolean result = DynamicTasks.queueIfPossible(sshable)
                 .orSubmitAndBlock()
                 .andWaitForSuccess();
         if (!result) {
@@ -334,7 +336,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                     entity, Time.makeTimeStringRounded(stopwatchForReboot)));
         }
 
-        List<String> commands = Lists.newArrayList();
+        final List<String> commands = Lists.newArrayList();
         commands.add(INSTALL_CURL);
         if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
             commands.add(installDockerOnUbuntu());
@@ -377,6 +379,21 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     private String installDockerOnUbuntu() {
         String version = getVersion();
         log.debug("Installing Docker version {} on Ubuntu", version);
+
+        if ("latest".equals(version)) {
+            if (log.isDebugEnabled()) log.debug("Installing Docker latest version on Ubuntu", version);
+            return chainGroup(
+                installPackage("apt-transport-https"),
+                "echo 'deb https://get.docker.com/ubuntu docker main' | " + sudo("tee -a /etc/apt/sources.list.d/docker.list"),
+                sudo("apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9"),
+                installPackage("lxc-docker"));
+        }
+        else if (version.matches("^[0-9]+\\.[0-9]+$")) {
+            version += ".0"; // Append minor version
+        }
+
+        if (log.isDebugEnabled()) log.debug("Installing Docker version {} on Ubuntu", version);
+
         return chainGroup(
                 installPackage("apt-transport-https"),
                 "echo 'deb https://get.docker.com/ubuntu docker main' | " + sudo("tee -a /etc/apt/sources.list.d/docker.list"),
