@@ -48,14 +48,13 @@ import brooklyn.networking.subnet.SubnetTier;
 import brooklyn.util.collections.MutableMap;
 import brooklyn.util.flags.SetFromFlag;
 import brooklyn.util.time.Duration;
-
 import com.google.common.reflect.TypeToken;
 
 /**
  * A single machine running Docker.
  * <p>
  * This entity controls the {@link DockerHostLocation} location, and creates
- * and wraps a {@link JcloudsLocatiopn} representing the API for the Docker
+ * and wraps a {@link JcloudsLocation} representing the API for the Docker
  * service on this machine.
  */
 @ImplementedBy(DockerHostImpl.class)
@@ -113,7 +112,7 @@ public interface DockerHost extends MachineEntity, Resizable, HasShortName, Loca
     ConfigKey<List<String>> DOCKER_HOST_AFFINITY_RULES = AffinityRules.AFFINITY_RULES;
 
     @SetFromFlag("password")
-    ConfigKey<String> DOCKER_PASSWORD = DockerAttributes.DOCKER_PASSWORD;
+    ConfigKey<String> DOCKER_PASSWORD = ConfigKeys.newStringConfigKey("docker.password", "Password used by docker containers");
 
     AttributeSensor<String> DOCKER_HOST_NAME = Sensors.newStringSensor("docker.host.name", "The name of the Docker host");
 

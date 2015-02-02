@@ -38,7 +38,6 @@ import brooklyn.location.docker.DockerContainerLocation;
 import brooklyn.location.dynamic.LocationOwner;
 import brooklyn.location.jclouds.JcloudsSshMachineLocation;
 import brooklyn.util.flags.SetFromFlag;
-
 import com.google.common.reflect.TypeToken;
 
 /**
@@ -59,9 +58,6 @@ public interface DockerContainer extends BasicStartable, HasShortName, LocationO
 
     @SetFromFlag("managed")
     ConfigKey<Boolean> MANAGED = DockerAttributes.MANAGED;
-
-    @SetFromFlag("password")
-    ConfigKey<String> DOCKER_PASSWORD = DockerAttributes.DOCKER_PASSWORD;
 
     @SetFromFlag("imageId")
     ConfigKey<String> DOCKER_IMAGE_ID = DockerAttributes.DOCKER_IMAGE_ID.getConfigKey();
@@ -90,7 +86,7 @@ public interface DockerContainer extends BasicStartable, HasShortName, LocationO
     AttributeSensorAndConfigKey<Entity, Entity> ENTITY = ConfigKeys.newSensorAndConfigKey(Entity.class, "docker.container.entity", "The entity running in this Docker container");
 
     ConfigKey<String> DOCKER_CONTAINER_NAME_FORMAT = ConfigKeys.newStringConfigKey("docker.container.nameFormat",
-            "Format for generating Docker container names", DockerUtils.DEFAULT_DOCKER_CONTAINER_NAME_FORMAT);
+        "Format for generating Docker container names", DockerUtils.DEFAULT_DOCKER_CONTAINER_NAME_FORMAT);
 
     AttributeSensor<String> DOCKER_CONTAINER_NAME = Sensors.newStringSensor("docker.container.name", "The name of the Docker container");
 

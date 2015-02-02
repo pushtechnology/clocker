@@ -16,7 +16,7 @@
 #
 # sshd
 #
-# VERSION 0.0.4
+# VERSION 0.0.5
 
 FROM ${repository}/${imageName}
 MAINTAINER Cloudsoft "brooklyn@cloudsoftcorp.com"
@@ -24,7 +24,7 @@ MAINTAINER Cloudsoft "brooklyn@cloudsoftcorp.com"
 # setup locale
 RUN type locale-gen ; if [ "$?" -eq "0" ] ; then locale-gen en_US.UTF-8 ; fi
 
-# setup root account
+# setup root account, ensures that image root accounts have non-default passwords
 RUN echo 'root:${entity.password}' | chpasswd
 
 # install sshd
@@ -38,6 +38,42 @@ RUN type apt-get ; \
   mkdir /var/run/sshd ; \
   chmod 600 /var/run/sshd ; \
   /usr/sbin/sshd ;
+
+[#if ssh??]
+[#if ssh.authorisedKeys??]
+RUN if [ -f /etc/ssh/sshd_config ] ; then \
+    sed -i "/^#/ d" /etc/ssh/sshd_config ; \
+    sed -i "/PasswordAuthentication/ d" /etc/ssh/sshd_config ; \
+    sed -i "/GSSAPIAuthentication/ d" /etc/ssh/sshd_config ; \
+    sed -i "/X11Forwarding/ d" /etc/ssh/sshd_config ; \
+    sed -i "/AuthorizedKeysFile/ d" /etc/ssh/sshd_config ; \
+    sed -i "/PubkeyAuthentication/ d" /etc/ssh/sshd_config ; \
+    sed -i "/RSAAuthentication/ d" /etc/ssh/sshd_config ; \
+    echo PasswordAuthentication no >> /etc/ssh/sshd_config ; \
+    echo GSSAPIAuthentication no >> /etc/ssh/sshd_config ; \
+    echo X11Forwarding no >> /etc/ssh/sshd_config ; \
+    echo AuthorizedKeysFile .ssh/authorized_keys >> /etc/ssh/sshd_config ; \
+    echo PubkeyAuthentication yes >> /etc/ssh/sshd_config ; \
+    echo RSAAuthentication yes >> /etc/ssh/sshd_config ; \
+  elif  -f /etc/sshd_config ] ; then \
+    sed -i "/^#/ d" /etc/sshd_config ; \
+    sed -i "/PasswordAuthentication/ d" /etc/sshd_config ; \
+    sed -i "/GSSAPIAuthentication/ d" /etc/sshd_config ; \
+    sed -i "/X11Forwarding/ d" /etc/sshd_config ; \
+    sed -i "/AuthorizedKeysFile/ d" /etc/sshd_config ; \
+    sed -i "/PubkeyAuthentication/ d" /etc/sshd_config ; \
+    sed -i "/RSAAuthentication/ d" /etc/sshd_config ; \
+    echo PasswordAuthentication no >> /etc/sshd_config ; \
+    echo GSSAPIAuthentication no >> /etc/sshd_config ; \
+    echo X11Forwarding no >> /etc/sshd_config ; \
+    echo AuthorizedKeysFile .ssh/authorized_keys >> /etc/sshd_config ; \
+    echo PubkeyAuthentication yes >> /etc/sshd_config ; \
+    echo RSAAuthentication yes >> /etc/sshd_config ; \
+  fi ; \
+  mkdir /root/.ssh && \
+  echo ${ssh.authorisedKeys} >> /root/.ssh/authorized_keys
+[/#if]
+[/#if]
 
 EXPOSE 22
 

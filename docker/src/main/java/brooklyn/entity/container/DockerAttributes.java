@@ -26,9 +26,7 @@ import brooklyn.event.basic.AttributeSensorAndConfigKey;
 import brooklyn.event.basic.Sensors;
 import brooklyn.location.docker.strategy.DockerAwarePlacementStrategy;
 import brooklyn.util.flags.TypeCoercions;
-import brooklyn.util.internal.ssh.SshTool;
 import brooklyn.util.javalang.Reflections;
-
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.reflect.TypeToken;
@@ -50,8 +48,6 @@ public class DockerAttributes {
     public static final AttributeSensorAndConfigKey<String, String> DOCKER_IMAGE_NAME = ConfigKeys.newStringSensorAndConfigKey("docker.imageName", "The name of the Docker image use used by a container");
 
     public static final AttributeSensorAndConfigKey<String, String> DOCKER_HARDWARE_ID = ConfigKeys.newSensorAndConfigKey(String.class, "docker.hardwareId", "The ID of a Docker hardware type to use for a container", "small");
-
-    public static final ConfigKey<String> DOCKER_PASSWORD = ConfigKeys.newConfigKeyWithPrefix("docker.", SshTool.PROP_PASSWORD);
 
     public static final ConfigKey<Boolean> DOCKER_USE_HOST_DNS_NAME = ConfigKeys.newBooleanConfigKey("docker.useHostDnsName", "Container uses same DNS hostname as Docker host", Boolean.TRUE);
     public static final ConfigKey<Integer> DOCKER_CPU_SHARES = ConfigKeys.newIntegerConfigKey("docker.cpuShares", "Container CPU shares configuration");

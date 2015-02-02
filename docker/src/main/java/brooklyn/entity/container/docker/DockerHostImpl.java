@@ -79,7 +79,6 @@ import brooklyn.util.text.Identifiers;
 import brooklyn.util.text.StringPredicates;
 import brooklyn.util.text.Strings;
 import brooklyn.util.time.Duration;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -115,10 +114,9 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         repository = DockerUtils.allowed(repository);
         setAttribute(DOCKER_REPOSITORY, repository);
 
-        // Set a password for this host's containers
         String password = getConfig(DOCKER_PASSWORD);
         if (Strings.isBlank(password)) {
-            password = Identifiers.makeRandomId(8);
+            password = Identifiers.makeRandomId(16);
             setConfig(DOCKER_PASSWORD, password);
         }
 
@@ -398,7 +396,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         String dockerLocationSpec = String.format("jclouds:docker:http://%s:%s",
                 found.get().getSshHostAndPort().getHostText(), getDockerPort());
         JcloudsLocation jcloudsLocation = (JcloudsLocation) getManagementContext().getLocationRegistry()
-                .resolve(dockerLocationSpec, MutableMap.of("identity", "docker", "credential", "docker", ComputeServiceProperties.IMAGE_LOGIN_USER, "root:" + getPassword()));
+                .resolve(dockerLocationSpec, MutableMap.of("identity", "docker", "credential", "docker", ComputeServiceProperties.IMAGE_LOGIN_USER, "root"));
         setAttribute(JCLOUDS_DOCKER_LOCATION, jcloudsLocation);
 
         DockerPortForwarder portForwarder = new DockerPortForwarder();

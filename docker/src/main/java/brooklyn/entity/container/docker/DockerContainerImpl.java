@@ -76,7 +76,6 @@ import brooklyn.util.net.Cidr;
 import brooklyn.util.net.Urls;
 import brooklyn.util.text.Strings;
 import brooklyn.util.time.Duration;
-
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 
@@ -320,9 +319,6 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
         }
         options.env(environment);
 
-        // Set login password from the Docker host
-        options.overrideLoginPassword(getDockerHost().getPassword());
-
         return options;
     }
 
@@ -350,17 +346,12 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
 
         // Configure the container options based on the host and the running entity
         DockerTemplateOptions options = getDockerTemplateOptions();
-
         // put these fields on the location so it has the info it needs to create the subnet
         Map<?, ?> dockerFlags = MutableMap.<Object, Object>builder()
                 .put(JcloudsLocationConfig.TEMPLATE_BUILDER, new PortableTemplateBuilder().options(options))
                 .put(JcloudsLocationConfig.IMAGE_ID, getConfig(DOCKER_IMAGE_ID))
                 .put(JcloudsLocationConfig.HARDWARE_ID, getConfig(DOCKER_HARDWARE_ID))
                 .put(LocationConfigKeys.USER, "root")
-                .put(LocationConfigKeys.PASSWORD, getConfig(DOCKER_PASSWORD))
-                .put(SshTool.PROP_PASSWORD, getConfig(DOCKER_PASSWORD))
-                .put(LocationConfigKeys.PRIVATE_KEY_DATA, null)
-                .put(LocationConfigKeys.PRIVATE_KEY_FILE, null)
                 .put(CloudLocationConfig.WAIT_FOR_SSHABLE, false)
                 .put(JcloudsLocationConfig.INBOUND_PORTS, getRequiredOpenPorts(getRunningEntity()))
                 .put(JcloudsLocation.USE_PORT_FORWARDING, true)
@@ -368,7 +359,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
                 .put(JcloudsLocation.PORT_FORWARDING_MANAGER, subnetTier.getPortForwardManager())
                 .put(JcloudsPortforwardingSubnetLocation.PORT_FORWARDER, subnetTier.getPortForwarder())
                 .put(SubnetTier.SUBNET_CIDR, Cidr.CLASS_B)
-                .build();
+            .build();
 
         try {
             // Create a new container using jclouds Docker driver

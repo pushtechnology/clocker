@@ -15,7 +15,16 @@
  */
 package brooklyn.entity.container.docker;
 
-import static brooklyn.util.ssh.BashCommands.*;
+import static brooklyn.util.ssh.BashCommands.INSTALL_CURL;
+import static brooklyn.util.ssh.BashCommands.INSTALL_WGET;
+import static brooklyn.util.ssh.BashCommands.alternatives;
+import static brooklyn.util.ssh.BashCommands.chainGroup;
+import static brooklyn.util.ssh.BashCommands.executeCommandThenAsUserTeeOutputToFile;
+import static brooklyn.util.ssh.BashCommands.fail;
+import static brooklyn.util.ssh.BashCommands.ifExecutableElse0;
+import static brooklyn.util.ssh.BashCommands.ifExecutableElse1;
+import static brooklyn.util.ssh.BashCommands.installPackage;
+import static brooklyn.util.ssh.BashCommands.sudo;
 import static java.lang.String.format;
 
 import java.util.Collection;
@@ -35,6 +44,8 @@ import brooklyn.entity.container.weave.WeaveContainer;
 import brooklyn.entity.container.weave.WeaveInfrastructure;
 import brooklyn.entity.software.SshEffectorTasks;
 import brooklyn.location.OsDetails;
+import brooklyn.location.basic.LocationConfigKeys;
+import brooklyn.location.basic.LocationConfigUtils;
 import brooklyn.location.basic.SshMachineLocation;
 import brooklyn.location.jclouds.JcloudsSshMachineLocation;
 import brooklyn.location.jclouds.networking.JcloudsLocationSecurityGroupCustomizer;
@@ -54,7 +65,6 @@ import brooklyn.util.text.Identifiers;
 import brooklyn.util.text.Strings;
 import brooklyn.util.time.Duration;
 import brooklyn.util.time.Time;
-
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -130,17 +140,20 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
         // Update the image with the Clocker sshd Dockerfile
         copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE),
-                false, getExtraTemplateSubstitutions(name));
+            false, getExtraTemplateSubstitutions(name));
         String sshdImageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, name);
         log.info("Created SSHable Dockerfile image with ID {}", sshdImageId);
 
         return sshdImageId;
     }
 
+    @SuppressWarnings("deprecation")
     private Map<String, Object> getExtraTemplateSubstitutions(String imageName) {
-        Map<String, Object> templateSubstitutions = MutableMap.<String, Object> of("repository", getRepository(), "imageName", imageName);
-        DockerHost host = (DockerHost) getEntity();
+        final Map<String, Object> templateSubstitutions = MutableMap.<String, Object> of("repository", getRepository(), "imageName", imageName);
+        final DockerHost host = (DockerHost) getEntity();
         templateSubstitutions.putAll(host.getInfrastructure().getConfig(DockerInfrastructure.DOCKERFILE_SUBSTITUTIONS));
+        templateSubstitutions.put("ssh", MutableMap.of("authorisedKeys",
+            LocationConfigUtils.getPublicKeyData(host.getDynamicLocation().getMachine().getAllConfigBag()).trim()));
         return templateSubstitutions;
     }
 
@@ -289,8 +302,8 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         return chainGroup(
                 INSTALL_WGET,
                 alternatives(
-                        sudo("rpm -qa | grep epel-release"),
-                        sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
+                    sudo("rpm -qa | grep epel-release"),
+                    sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
     }
 
     private String installDockerOnUbuntu() {
