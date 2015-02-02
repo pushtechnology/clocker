@@ -385,11 +385,8 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
         Collection<Integer> entityOpenPorts = getRequiredOpenPorts(entity);
         options.inboundPorts(Ints.toArray(entityOpenPorts));
 
-        // Log for debugging without password
+        // Log for debugging
         LOG.debug("Docker options for {}: {}", getDockerHost(), options);
-
-        // Set login password from the Docker host
-        options.overrideLoginPassword(getDockerHost().getPassword());
 
         return options;
     }
@@ -434,10 +431,6 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
                 .put(JcloudsLocationConfig.IMAGE_ID, config().get(DOCKER_IMAGE_ID))
                 .put(JcloudsLocationConfig.HARDWARE_ID, config().get(DOCKER_HARDWARE_ID))
                 .put(LocationConfigKeys.USER, "root")
-                .put(LocationConfigKeys.PASSWORD, config().get(DOCKER_PASSWORD))
-                .put(SshTool.PROP_PASSWORD, config().get(DOCKER_PASSWORD))
-                .put(LocationConfigKeys.PRIVATE_KEY_DATA, null)
-                .put(LocationConfigKeys.PRIVATE_KEY_FILE, null)
                 .put(CloudLocationConfig.WAIT_FOR_SSHABLE, false)
                 .put(JcloudsLocationConfig.INBOUND_PORTS, getRequiredOpenPorts(getRunningEntity()))
                 .put(JcloudsLocation.USE_PORT_FORWARDING, true)
@@ -445,7 +438,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
                 .put(JcloudsLocation.PORT_FORWARDING_MANAGER, subnetTier.getPortForwardManager())
                 .put(JcloudsPortforwardingSubnetLocation.PORT_FORWARDER, subnetTier.getPortForwarder())
                 .put(SubnetTier.SUBNET_CIDR, Cidr.CLASS_B)
-                .build();
+            .build();
 
         try {
             // Create a new container using jclouds Docker driver

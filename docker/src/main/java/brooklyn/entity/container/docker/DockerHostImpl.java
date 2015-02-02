@@ -90,7 +90,6 @@ import brooklyn.util.text.Identifiers;
 import brooklyn.util.text.StringPredicates;
 import brooklyn.util.text.Strings;
 import brooklyn.util.time.Duration;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -123,7 +122,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         // Set a password for this host's containers
         String password = config().get(DOCKER_PASSWORD);
         if (Strings.isBlank(password)) {
-            password = Identifiers.makeRandomId(8);
+            password = Identifiers.makeRandomId(16);
             config().set(DOCKER_PASSWORD, password);
         }
 
@@ -459,7 +458,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         String certificatePath = config().get(DockerInfrastructure.DOCKER_CERTIFICATE_PATH);
         String keyPath = config().get(DockerInfrastructure.DOCKER_KEY_PATH);
         JcloudsLocation jcloudsLocation = (JcloudsLocation) getManagementContext().getLocationRegistry()
-                .resolve(dockerLocationSpec, MutableMap.of("identity", certificatePath, "credential", keyPath, ComputeServiceProperties.IMAGE_LOGIN_USER, "root:" + getPassword()));
+                .resolve(dockerLocationSpec, MutableMap.of("identity", "docker", "credential", "docker", ComputeServiceProperties.IMAGE_LOGIN_USER, "root"));
         setAttribute(JCLOUDS_DOCKER_LOCATION, jcloudsLocation);
 
         DockerPortForwarder portForwarder = new DockerPortForwarder();

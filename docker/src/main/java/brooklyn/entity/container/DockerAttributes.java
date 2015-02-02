@@ -29,9 +29,7 @@ import brooklyn.event.basic.PortAttributeSensorAndConfigKey;
 import brooklyn.event.basic.Sensors;
 import brooklyn.location.docker.strategy.DockerAwarePlacementStrategy;
 import brooklyn.util.flags.TypeCoercions;
-import brooklyn.util.internal.ssh.SshTool;
 import brooklyn.util.javalang.Reflections;
-
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -53,13 +51,13 @@ public class DockerAttributes {
             "docker.dockerfile.name", "Name for the image created by the Dockerfile being used");
 
     public static final AttributeSensorAndConfigKey<String, String> DOCKER_IMAGE_ID = ConfigKeys.newStringSensorAndConfigKey(
-            "docker.image.id", "The ID of a Docker image to use for a container");
+        "docker.image.id", "The ID of a Docker image to use for a container");
 
     public static final AttributeSensorAndConfigKey<String, String> DOCKER_IMAGE_REPOSITORY = ConfigKeys.newStringSensorAndConfigKey(
-            "docker.image.repository", "The repository of the Docker image used by a container");
+        "docker.image.repository", "The repository of the Docker image used by a container");
 
     public static final AttributeSensorAndConfigKey<String, String> DOCKER_IMAGE_NAME = ConfigKeys.newStringSensorAndConfigKey(
-            "docker.image.name", "The name of the Docker image used by a container");
+        "docker.image.name", "The name of the Docker image used by a container");
 
     public static final AttributeSensorAndConfigKey<String, String> DOCKER_IMAGE_TAG = ConfigKeys.newStringSensorAndConfigKey(
             "docker.image.tag", "The tag of the image to use", "latest");
@@ -69,8 +67,6 @@ public class DockerAttributes {
 
     public static final AttributeSensorAndConfigKey<String, String> DOCKER_CONTAINER_NAME = ConfigKeys.newStringSensorAndConfigKey(
             "docker.container.name", "The name of the Docker container");
-
-    public static final ConfigKey<String> DOCKER_PASSWORD = ConfigKeys.newConfigKeyWithPrefix("docker.", SshTool.PROP_PASSWORD);
 
     public static final ConfigKey<Boolean> DOCKER_USE_HOST_DNS_NAME = ConfigKeys.newBooleanConfigKey(
             "docker.useHostDnsName", "Container uses same DNS hostname as Docker host", Boolean.TRUE);
