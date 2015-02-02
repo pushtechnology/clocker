@@ -36,6 +36,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.apache.brooklyn.core.location.LocationConfigUtils;
 import org.jclouds.net.domain.IpPermission;
 import org.jclouds.net.domain.IpProtocol;
 
@@ -127,11 +128,24 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         checkNotNull(name, "name");
         checkNotNull(tag, "tag");
         copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE),
-                true, ImmutableMap.<String, Object>of("fullyQualifiedImageName", name + ":" + tag));
+                true, getExtraTemplateSubstitutions(name, tag));
         String sshdImageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, name);
         log.info("Created SSH-based image from {} with ID {}", name, sshdImageId);
 
         return sshdImageId;
+    }
+
+    @SuppressWarnings("deprecation")
+    private Map<String, Object> getExtraTemplateSubstitutions(String name, String tag) {
+        final Map<String, Object> templateSubstitutions = MutableMap.<String, Object> of(
+            "imageName", name,
+            "tag", tag,
+            "fullyQualifiedImageName", name + ":" + tag);
+        final DockerHost host = (DockerHost) getEntity();
+        templateSubstitutions.putAll(host.getInfrastructure().getConfig(DockerInfrastructure.DOCKERFILE_SUBSTITUTIONS));
+        templateSubstitutions.put("ssh", MutableMap.of("authorisedKeys",
+            LocationConfigUtils.getPublicKeyData(host.getDynamicLocation().getMachine().getAllConfigBag()).trim()));
+        return templateSubstitutions;
     }
 
     private String buildDockerfileDirectory(String name) {
@@ -283,8 +297,8 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         String osMajorVersion = osVersion.substring(0, osVersion.lastIndexOf("."));
         return chainGroup(
                 alternatives(
-                        sudo("rpm -qa | grep epel-release"),
-                        sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
+                    sudo("rpm -qa | grep epel-release"),
+                    sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
     }
 
     @Override
