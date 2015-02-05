@@ -131,7 +131,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
         // Update the image with the Clocker sshd Dockerfile
         copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE),
-                false, getExtraTemplateSubstitutions(name));
+            false, getExtraTemplateSubstitutions(name));
         String sshdImageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, name);
         log.info("Created SSHable Dockerfile image with ID {}", sshdImageId);
 
@@ -363,33 +363,26 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         String osMajorVersion = osVersion.substring(0, osVersion.lastIndexOf("."));
         return chainGroup(
                 alternatives(
-                        sudo("rpm -qa | grep epel-release"),
-                        sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
-    }
-
-    @Override
-    public String getVersion() {
-        String version = super.getVersion();
-        if (version.matches("^[0-9]+\\.[0-9]+$")) {
-            version += ".0"; // Append minor version
-        }
-        return version;
+                    sudo("rpm -qa | grep epel-release"),
+                    sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
     }
 
     private String installDockerOnUbuntu() {
-        String version = getVersion();
+        final String version = getVersion();
         log.debug("Installing Docker version {} on Ubuntu", version);
 
+        final String dockerPackage;
         if ("latest".equals(version)) {
-            if (log.isDebugEnabled()) log.debug("Installing Docker latest version on Ubuntu", version);
-            return chainGroup(
-                installPackage("apt-transport-https"),
-                "echo 'deb https://get.docker.com/ubuntu docker main' | " + sudo("tee -a /etc/apt/sources.list.d/docker.list"),
-                sudo("apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9"),
-                installPackage("lxc-docker"));
+            dockerPackage = "lxc-docker";
+        }
+        else if ("docker.io".equals(version)) {
+            dockerPackage = "docker.io";
         }
         else if (version.matches("^[0-9]+\\.[0-9]+$")) {
-            version += ".0"; // Append minor version
+            dockerPackage = "lxc-docker-" + version + ".0";
+        }
+        else {
+            dockerPackage = "lxc-docker-" + version;
         }
 
         if (log.isDebugEnabled()) log.debug("Installing Docker version {} on Ubuntu", version);
@@ -398,7 +391,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 installPackage("apt-transport-https"),
                 "echo 'deb https://get.docker.com/ubuntu docker main' | " + sudo("tee -a /etc/apt/sources.list.d/docker.list"),
                 sudo("apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 36A1D7869245C8950F966E92D8576A8BA88D21E9"),
-                installPackage("lxc-docker-" + version));
+                installPackage(dockerPackage));
     }
 
     /**
@@ -419,10 +412,18 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
         Networking.checkPortsValid(getPortMap());
 
+        final String dockerConfigFile;
+        if ("docker.io".equals(getVersion())) {
+            dockerConfigFile = "/etc/default/docker.io";
+        }
+        else {
+            dockerConfigFile = "/etc/default/docker";
+        }
+
         newScript(CUSTOMIZING)
                 .body.append(
                         ifExecutableElse0("apt-get", chainGroup(
-                                format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/default/docker"),
+                                format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a " + dockerConfigFile),
                                 sudo("groupadd -f docker"),
                                 sudo(format("gpasswd -a %s docker", getMachine().getUser())),
                                 sudo("newgrp docker"))),
@@ -453,7 +454,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 .body.append(
                         alternatives(
                                 ifExecutableElse1("boot2docker", "boot2docker status"),
-                                ifExecutableElse1("service", sudo("service docker status"))))
+                                ifExecutableElse1("service", sudo("service " + getService() + " status"))))
                 .noExtraOutput() // otherwise Brooklyn appends 'check-running' and the method always returns true.
                 .gatherOutput();
         helper.execute();
@@ -466,7 +467,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 .body.append(
                         alternatives(
                                 ifExecutableElse1("boot2docker", "boot2docker down"),
-                                ifExecutableElse1("service", sudo("service docker stop"))))
+                                ifExecutableElse1("service", sudo("service " + getService() + " stop"))))
                 .failOnNonZeroResultCode()
                 .execute();
     }
@@ -477,10 +478,23 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 .body.append(
                         alternatives(
                                 ifExecutableElse1("boot2docker", "boot2docker up"),
-                                ifExecutableElse1("service", sudo("service docker start"))))
+                                ifExecutableElse1("service", sudo("service " + getService() + " start"))))
                 .failOnNonZeroResultCode()
                 .uniqueSshConnection()
-                .execute();
+            .execute();
+    }
+
+    public String getPidFile() {
+        return "/var/run/docker.pid";
+    }
+
+    private String getService() {
+        if ("docker.io".equals(getVersion())) {
+            return "docker.io";
+        }
+        else {
+            return "docker";
+        }
     }
 
     @Override
@@ -492,5 +506,4 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         }
         return builder.build();
     }
-
 }
