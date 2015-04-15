@@ -458,7 +458,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         String certificatePath = config().get(DockerInfrastructure.DOCKER_CERTIFICATE_PATH);
         String keyPath = config().get(DockerInfrastructure.DOCKER_KEY_PATH);
         JcloudsLocation jcloudsLocation = (JcloudsLocation) getManagementContext().getLocationRegistry()
-                .resolve(dockerLocationSpec, MutableMap.of("identity", "docker", "credential", "docker", ComputeServiceProperties.IMAGE_LOGIN_USER, "root"));
+                .resolve(dockerLocationSpec, MutableMap.of("identity", certificatePath, "credential", keyPath, ComputeServiceProperties.IMAGE_LOGIN_USER, "root"));
         setAttribute(JCLOUDS_DOCKER_LOCATION, jcloudsLocation);
 
         DockerPortForwarder portForwarder = new DockerPortForwarder();
