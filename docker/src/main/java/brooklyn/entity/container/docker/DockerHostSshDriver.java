@@ -339,6 +339,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
             commands.add(installDockerOnUbuntu());
         } else if ("centos".equalsIgnoreCase(osDetails.getName()) && "7.0".equals(osDetails.getVersion())) {
+            commands.add("sed -i \"s/Defaults    requiretty//\" /etc/sudoers"); // Allow sudo to be called by Brooklyn
             commands.add(installPackage(ImmutableMap.of("yum", "docker"), null));
         } else if ("centos".equalsIgnoreCase(osDetails.getName())) {
             commands.add(ifExecutableElse1("yum", useYum(osVersion, arch, getEpelRelease())));
