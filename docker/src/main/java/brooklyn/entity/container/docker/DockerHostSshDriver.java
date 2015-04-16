@@ -346,7 +346,10 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         commands.add(INSTALL_CURL);
         if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
             commands.add(installDockerOnUbuntu());
-        } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
+        } else if ("centos".equalsIgnoreCase(osDetails.getName()) && "7.0".equals(osDetails.getVersion())) {
+            commands.add("sed -i \"s/Defaults    requiretty//\" /etc/sudoers"); // Allow sudo to be called by Brooklyn
+            commands.add(installPackage(ImmutableMap.of("yum", "docker"), null));
+        } else if ("centos".equalsIgnoreCase(osDetails.getName())) {
             commands.add(ifExecutableElse1("yum", useYum(osVersion, arch, getEpelRelease())));
             commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
             commands.add(sudo(format("curl https://get.docker.com/builds/Linux/x86_64/docker-%s -o /usr/bin/docker", getVersion())));
@@ -410,17 +413,28 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
         Networking.checkPortsValid(getPortMap());
 
-        newScript(CUSTOMIZING)
+        final OsDetails osDetails = getMachine().getOsDetails();
+        if ("centos".equalsIgnoreCase(osDetails.getName()) && "7.0".equals(osDetails.getVersion())) {
+            // CentOS will not have lxc and requires config through OPTIONS not other_args
+            newScript(CUSTOMIZING)
                 .body.append(
-                        ifExecutableElse0("apt-get", chainGroup(
-                                format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/default/docker"),
-                                sudo("groupadd -f docker"),
-                                sudo(format("gpasswd -a %s docker", getMachine().getUser())),
-                                sudo("newgrp docker"))),
-                        ifExecutableElse0("yum",
-                                format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker")))
+                format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker"))
                 .failOnNonZeroResultCode()
                 .execute();
+        }
+        else {
+            newScript(CUSTOMIZING)
+                .body.append(
+                ifExecutableElse0("apt-get", chainGroup(
+                    format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/default/docker"),
+                    sudo("groupadd -f docker"),
+                    sudo(format("gpasswd -a %s docker", getMachine().getUser())),
+                    sudo("newgrp docker"))),
+                ifExecutableElse0("yum",
+                    format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker")))
+                .failOnNonZeroResultCode()
+                .execute();
+        }
 
         // Configure volume mappings for the host
         Map<String, String> mapping = MutableMap.of();
