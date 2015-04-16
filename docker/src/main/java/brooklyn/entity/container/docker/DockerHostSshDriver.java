@@ -405,17 +405,27 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
         Networking.checkPortsValid(getPortMap());
 
-        newScript(CUSTOMIZING)
+        final OsDetails osDetails = getMachine().getOsDetails();
+        if ("centos".equalsIgnoreCase(osDetails.getName()) && "7.0".equals(osDetails.getVersion())) {
+            newScript(CUSTOMIZING)
                 .body.append(
-                        ifExecutableElse0("apt-get", chainGroup(
-                                format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/default/docker"),
-                                sudo("groupadd -f docker"),
-                                sudo(format("gpasswd -a %s docker", getMachine().getUser())),
-                                sudo("newgrp docker"))),
-                        ifExecutableElse0("yum",
-                                format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker")))
+                format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker"))
                 .failOnNonZeroResultCode()
                 .execute();
+        }
+        else {
+            newScript(CUSTOMIZING)
+                .body.append(
+                ifExecutableElse0("apt-get", chainGroup(
+                    format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/default/docker"),
+                    sudo("groupadd -f docker"),
+                    sudo(format("gpasswd -a %s docker", getMachine().getUser())),
+                    sudo("newgrp docker"))),
+                ifExecutableElse0("yum",
+                    format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker")))
+                .failOnNonZeroResultCode()
+                .execute();
+        }
 
         // Configure volume mappings for the host
         Map<String, String> mapping = MutableMap.of();
