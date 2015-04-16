@@ -89,7 +89,7 @@ services:
 ### Building from source
 
 <!-- CLOCKER_VERSION_BELOW -->
-The master branch of Clocker is at version [0.8.0-SNAPSHOT](http://github.com/brooklyncentral/clocker/).
+The master branch of Clocker is at version [0.8.0-DIFFUSION-SNAPSHOT](http://github.com/brooklyncentral/clocker/).
 Build and run this version of Clocker from source as follows:
 
 ```Bash
