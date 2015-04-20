@@ -257,8 +257,6 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
     @Override
     public void install() {
-        final String version = getVersion();
-
         final OsDetails osDetails = getMachine().getMachineDetails().getOsDetails();
         final String osVersion = osDetails.getVersion();
         final String arch = osDetails.getArch();
