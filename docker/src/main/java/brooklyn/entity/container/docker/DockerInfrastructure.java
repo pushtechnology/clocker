@@ -119,6 +119,9 @@ public interface DockerInfrastructure extends BasicStartable, Resizable, Locatio
             new TypeToken<Map<String, Object>>() { },
             "docker.dockerfile.substitutions", "Dockerfile template substitutions", MutableMap.<String, Object>of());
 
+    @SetFromFlag("dockerApiVersion")
+    ConfigKey<String> DOCKER_API_VERSION = ConfigKeys.newStringConfigKey("docker.api.version", "Version of Docker REST API", "1.16");
+
     AttributeSensor<DynamicCluster> DOCKER_HOST_CLUSTER = Sensors.newSensor(DynamicCluster.class, "docker.hosts", "Docker host cluster");
     AttributeSensor<DynamicGroup> DOCKER_CONTAINER_FABRIC = Sensors.newSensor(DynamicGroup.class, "docker.fabric", "Docker container fabric");
     AttributeSensor<DynamicMultiGroup> DOCKER_APPLICATIONS = Sensors.newSensor(DynamicMultiGroup.class, "docker.buckets", "Docker applications");
