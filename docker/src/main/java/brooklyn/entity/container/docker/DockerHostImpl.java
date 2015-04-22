@@ -23,6 +23,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.jclouds.Constants;
 import org.jclouds.compute.config.ComputeServiceProperties;
 import org.jclouds.compute.domain.OsFamily;
 import org.jclouds.compute.domain.TemplateBuilder;
@@ -454,11 +455,18 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
 
         Maybe<SshMachineLocation> found = Machines.findUniqueSshMachineLocation(getLocations());
         String dockerLocationSpec = String.format("jclouds:docker:https://%s:%s",
-                found.get().getSshHostAndPort().getHostText(), getDockerPort());
+            found.get().getSshHostAndPort().getHostText(), getDockerPort());
         String certificatePath = config().get(DockerInfrastructure.DOCKER_CERTIFICATE_PATH);
         String keyPath = config().get(DockerInfrastructure.DOCKER_KEY_PATH);
-        JcloudsLocation jcloudsLocation = (JcloudsLocation) getManagementContext().getLocationRegistry()
-                .resolve(dockerLocationSpec, MutableMap.of("identity", certificatePath, "credential", keyPath, ComputeServiceProperties.IMAGE_LOGIN_USER, "root"));
+        String dockerApiVersion = config().get(DockerInfrastructure.DOCKER_API_VERSION);
+        // Create the JClouds docker location used manage the host
+        JcloudsLocation jcloudsLocation = (JcloudsLocation) getManagementContext().getLocationRegistry().resolve(
+            dockerLocationSpec,
+            MutableMap.of(
+                "identity", certificatePath,
+                "credential", keyPath,
+                ComputeServiceProperties.IMAGE_LOGIN_USER, "root",
+                Constants.PROPERTY_API_VERSION, dockerApiVersion));
         setAttribute(JCLOUDS_DOCKER_LOCATION, jcloudsLocation);
 
         DockerPortForwarder portForwarder = new DockerPortForwarder();
