@@ -93,10 +93,6 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
         }
     }
 
-    public MachineProvisioningLocation<SshMachineLocation> getProvisioner() {
-        return provisioner;
-    }
-
     protected List<DockerHostLocation> getDockerHostLocations() {
         List<Optional<DockerHostLocation>> result = Lists.newArrayList();
         for (Entity entity : getDockerHostList()) {
@@ -156,11 +152,9 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
                     }
 
                     LOG.info("Provisioning new host with flags: {}", flags);
-                    SshMachineLocation provisioned = getProvisioner().obtain(flags);
-                    Entity added = getDockerInfrastructure().getDockerHostCluster().addNode(provisioned, MutableMap.of());
+                    Entity added = getDockerInfrastructure().getDockerHostCluster().addAndStartNode(provisioner, MutableMap.of());
                     dockerHost = (DockerHost) added;
                     machine = dockerHost.getDynamicLocation();
-                    Entities.start(added, ImmutableList.of(provisioned));
                 } finally {
                     permit.release();
                 }
