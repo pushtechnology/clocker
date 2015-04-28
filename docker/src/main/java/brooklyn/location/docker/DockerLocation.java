@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Semaphore;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,16 +42,18 @@ import brooklyn.location.basic.AbstractLocation;
 import brooklyn.location.basic.LocationConfigKeys;
 import brooklyn.location.basic.SshMachineLocation;
 import brooklyn.location.docker.strategy.DockerAwarePlacementStrategy;
-import brooklyn.location.docker.strategy.DockerAwareProvisioningStrategy;
+import brooklyn.location.docker.strategy.NoAvailableHostStrategy;
 import brooklyn.location.dynamic.DynamicLocation;
 import brooklyn.mementos.LocationMemento;
 import brooklyn.networking.location.NetworkProvisioningExtension;
+import brooklyn.policy.Policy;
 import brooklyn.util.collections.MutableMap;
 import brooklyn.util.exceptions.Exceptions;
 import brooklyn.util.flags.SetFromFlag;
 
 import com.google.common.base.Objects.ToStringHelper;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -79,8 +80,6 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
     @SetFromFlag("machines")
     private final SetMultimap<DockerHostLocation, String> containers = Multimaps.synchronizedSetMultimap(HashMultimap.<DockerHostLocation, String>create());
 
-    private transient Semaphore permit = new Semaphore(1);
-
     public DockerLocation() {
         this(Maps.newLinkedHashMap());
     }
@@ -104,7 +103,7 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
     }
 
     public MachineLocation obtain() throws NoMachinesAvailableException {
-        return obtain(Maps.<String,Object>newLinkedHashMap());
+        return obtain(Maps.<String, Object>newLinkedHashMap());
     }
 
     @Override
@@ -132,43 +131,33 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
             for (DockerAwarePlacementStrategy strategy : entityStrategies) {
                 available = strategy.filterLocations(available, entity);
             }
-        } else {
-            entityStrategies = ImmutableList.of();
         }
 
+        final NoAvailableHostStrategy noAvailableHostStrategy = (NoAvailableHostStrategy)Iterables.getOnlyElement(
+            Iterables.filter(infrastructure.getPolicies(), new Predicate<Policy>() {
+                @Override
+                public boolean apply(Policy policy) {
+                    LOG.info("Policy class {}", policy.getPolicyType().getName());
+                    final Class<?> policyClass;
+                    try {
+                        policyClass = this.getClass().getClassLoader().loadClass(policy.getPolicyType().getName());
+                    }
+                    catch (ClassNotFoundException e) {
+                        LOG.info("Unable to load policy class: {}", policy.getPolicyType().getName(), e);
+                        return false;
+                    }
+                    return NoAvailableHostStrategy.class.isAssignableFrom(policyClass);
+                }
+            }));
         // Use the docker strategy to add a new host
-        DockerHostLocation machine = null;
-        DockerHost dockerHost = null;
+        final DockerHostLocation machine;
+        final DockerHost dockerHost;
         if (available.size() > 0) {
             machine = available.get(0);
             dockerHost = machine.getOwner();
         } else {
-            // Get permission to create a new Docker host
-            if (permit.tryAcquire()) {
-                try {
-                    Iterable<DockerAwareProvisioningStrategy> provisioningStrategies = Iterables.filter(Iterables.concat(strategies,  entityStrategies), DockerAwareProvisioningStrategy.class);
-                    for (DockerAwareProvisioningStrategy strategy : provisioningStrategies) {
-                        flags = strategy.apply((Map<String,Object>) flags);
-                    }
-
-                    LOG.info("Provisioning new host with flags: {}", flags);
-                    Entity added = getDockerInfrastructure().getDockerHostCluster().addAndStartNode(provisioner, MutableMap.of());
-                    dockerHost = (DockerHost) added;
-                    machine = dockerHost.getDynamicLocation();
-                } finally {
-                    permit.release();
-                }
-            } else {
-                // Wait until whoever has the permit releases it, and try again
-                try {
-                    permit.acquire();
-                } catch (InterruptedException ie) {
-                    Exceptions.propagate(ie);
-                } finally {
-                    permit.release();
-                }
-                return obtain(flags);
-            }
+            dockerHost = noAvailableHostStrategy.handleNoHosts(this, entity, flags);
+            machine = dockerHost.getDynamicLocation();
         }
 
         // Now wait until the host has started up

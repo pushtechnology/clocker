@@ -56,6 +56,8 @@ import brooklyn.location.basic.BasicLocationDefinition;
 import brooklyn.location.basic.BasicLocationRegistry;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.location.docker.DockerResolver;
+import brooklyn.location.docker.strategy.DoNothingHostStrategy;
+import brooklyn.location.docker.strategy.NoAvailableHostStrategy;
 import brooklyn.management.LocationManager;
 import brooklyn.management.ManagementContext;
 import brooklyn.networking.sdn.SdnAttributes;
@@ -324,8 +326,16 @@ public class DockerInfrastructureImpl extends BasicStartableImpl implements Dock
         // TODO support multiple locations
         setAttribute(SERVICE_UP, Boolean.FALSE);
 
-        Location provisioner = Iterables.getOnlyElement(locations);
+        final Location provisioner = Iterables.getOnlyElement(locations);
         LOG.info("Creating new DockerLocation wrapping {}", provisioner);
+
+        final PolicySpec<NoAvailableHostStrategy> spec = config().get(NO_HOST_STRATEGY_SPEC);
+        if (spec != null) {
+            addPolicy(spec);
+        }
+        else {
+            addPolicy(PolicySpec.create(DoNothingHostStrategy.class));
+        }
 
         Map<String, ?> flags = MutableMap.<String, Object>builder()
                 .putAll(config().get(LOCATION_FLAGS))
