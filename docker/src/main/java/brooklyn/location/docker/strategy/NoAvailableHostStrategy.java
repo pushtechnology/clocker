@@ -1,20 +1,15 @@
 package brooklyn.location.docker.strategy;
 
-import java.util.List;
 import java.util.Map;
 
 import brooklyn.entity.Entity;
 import brooklyn.entity.container.docker.DockerHost;
-import brooklyn.entity.container.docker.DockerInfrastructure;
-import brooklyn.location.Location;
-import brooklyn.location.MachineProvisioningLocation;
 import brooklyn.location.NoMachinesAvailableException;
-import brooklyn.location.basic.SshMachineLocation;
-import brooklyn.location.docker.DockerHostLocation;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.policy.Policy;
 
 /**
+ * Action to take when attempting to provision an entity in a docker cloud location and no hosts are available.
  * @author Matt Champion on 24/04/15
  */
 public interface NoAvailableHostStrategy extends Policy {

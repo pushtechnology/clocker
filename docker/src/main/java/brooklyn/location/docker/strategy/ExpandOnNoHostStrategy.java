@@ -14,13 +14,13 @@ import brooklyn.entity.container.DockerAttributes;
 import brooklyn.entity.container.docker.DockerHost;
 import brooklyn.entity.container.docker.DockerInfrastructure;
 import brooklyn.location.Location;
-import brooklyn.location.MachineProvisioningLocation;
 import brooklyn.location.NoMachinesAvailableException;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.policy.basic.AbstractPolicy;
 import com.google.common.collect.Iterables;
 
 /**
+ * Increase the size of the Docker cloud
  * @author Matt Champion on 24/04/15
  */
 public final class ExpandOnNoHostStrategy extends AbstractPolicy implements NoAvailableHostStrategy {
