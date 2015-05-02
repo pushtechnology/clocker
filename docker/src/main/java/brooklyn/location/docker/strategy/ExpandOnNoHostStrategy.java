@@ -20,7 +20,7 @@ import brooklyn.policy.basic.AbstractPolicy;
 import com.google.common.collect.Iterables;
 
 /**
- * Increase the size of the Docker cloud
+ * Increase the size of the Docker cloud.
  * @author Matt Champion on 24/04/15
  */
 public final class ExpandOnNoHostStrategy extends AbstractPolicy implements NoAvailableHostStrategy {
