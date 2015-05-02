@@ -57,6 +57,7 @@ import brooklyn.location.basic.BasicLocationRegistry;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.location.docker.DockerResolver;
 import brooklyn.location.docker.strategy.DoNothingHostStrategy;
+import brooklyn.location.docker.strategy.DockerHostRemovalStrategy;
 import brooklyn.location.docker.strategy.NoAvailableHostStrategy;
 import brooklyn.management.LocationManager;
 import brooklyn.management.ManagementContext;
@@ -109,6 +110,7 @@ public class DockerInfrastructureImpl extends BasicStartableImpl implements Dock
                 .configure(DynamicCluster.MEMBER_SPEC, dockerHostSpec)
                 .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
+                .configure(DynamicCluster.REMOVAL_STRATEGY, new DockerHostRemovalStrategy())
                 .displayName("Docker Hosts"));
 
         DynamicGroup fabric = addChild(EntitySpec.create(DynamicGroup.class)
