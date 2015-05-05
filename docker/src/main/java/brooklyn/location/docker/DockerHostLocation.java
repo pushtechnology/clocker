@@ -84,7 +84,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
     private static final Logger LOG = LoggerFactory.getLogger(DockerHostLocation.class);
 
-    private transient Lock lock = new ReentrantLock();
+    private transient final Lock lock = new ReentrantLock();
 
     @SetFromFlag("machine")
     private SshMachineLocation machine;
