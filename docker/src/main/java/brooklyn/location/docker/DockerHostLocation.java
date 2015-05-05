@@ -36,9 +36,11 @@ import brooklyn.config.render.RendererHints;
 import brooklyn.config.render.RendererHints.Hint;
 import brooklyn.config.render.RendererHints.NamedActionWithUrl;
 import brooklyn.entity.Entity;
+import brooklyn.entity.basic.Attributes;
 import brooklyn.entity.basic.Entities;
 import brooklyn.entity.basic.EntityAndAttribute;
 import brooklyn.entity.basic.EntityLocal;
+import brooklyn.entity.basic.Lifecycle;
 import brooklyn.entity.basic.SoftwareProcess;
 import brooklyn.entity.container.DockerAttributes;
 import brooklyn.entity.container.DockerCallbacks;
@@ -116,6 +118,15 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
     @Override
     public DockerContainerLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
+        while (!Lifecycle.RUNNING.equals(dockerHost.getAttribute(Attributes.SERVICE_STATE_ACTUAL))) {
+            try {
+                Thread.sleep(1000L);
+            }
+            catch (InterruptedException e) {
+                throw new NoMachinesAvailableException("Interrupted while waiting for service to start", e);
+            }
+        }
+
         lock.lock();
         try {
             // Lookup entity from context or flags
