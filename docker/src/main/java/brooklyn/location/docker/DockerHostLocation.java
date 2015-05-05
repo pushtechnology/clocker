@@ -26,8 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +67,6 @@ import brooklyn.util.flags.SetFromFlag;
 import brooklyn.util.net.Cidr;
 import brooklyn.util.ssh.BashCommands;
 import brooklyn.util.text.Strings;
-
 import com.google.common.base.Objects.ToStringHelper;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -83,9 +81,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
     private static final Logger LOG = LoggerFactory.getLogger(DockerHostLocation.class);
 
-    public static final String CONTAINER_MUTEX = "container";
-
-    private transient ReadWriteLock lock = new ReentrantReadWriteLock();
+    private transient Lock lock = new ReentrantLock();
 
     @SetFromFlag("machine")
     private SshMachineLocation machine;
@@ -120,7 +116,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
     @Override
     public DockerContainerLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
-        lock.readLock().lock();
+        lock.lock();
         try {
             // Lookup entity from context or flags
             Object context = flags.get(LocationConfigKeys.CALLER_CONTEXT.getName());
@@ -232,7 +228,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
             return dockerContainer.getDynamicLocation();
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -289,7 +285,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
     @Override
     public void release(DockerContainerLocation machine) {
-        lock.readLock().lock();
+        lock.lock();
         try {
             LOG.info("Releasing {}", machine);
 
@@ -312,7 +308,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
                 Entities.unmanage(container);
             }
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -376,7 +372,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
     }
 
     public Lock getLock() {
-        return lock.writeLock();
+        return lock;
     }
 
     @Override
