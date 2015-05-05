@@ -554,7 +554,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     }
 
     @Override
-    public void start(Collection<? extends Location> locations) {
+    public synchronized void start(Collection<? extends Location> locations) {
         ServiceStateLogic.setExpectedState(this, Lifecycle.STARTING);
 
         Boolean started = config().get(SoftwareProcess.ENTITY_STARTED);
@@ -587,7 +587,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         Lifecycle state = getAttribute(SERVICE_STATE_ACTUAL);
         if (Lifecycle.STOPPING.equals(state) || Lifecycle.STOPPED.equals(state)) {
             LOG.debug("Ignoring request to stop {} when it is already {}", this, state);
