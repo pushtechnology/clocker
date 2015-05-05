@@ -40,6 +40,7 @@ import com.google.common.collect.Maps;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.entity.EntityLocal;
+
 import org.apache.brooklyn.api.location.MachineProvisioningLocation;
 import org.apache.brooklyn.api.location.NoMachinesAvailableException;
 import org.apache.brooklyn.api.sensor.AttributeSensor;
@@ -47,8 +48,10 @@ import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.render.RendererHints;
 import org.apache.brooklyn.core.config.render.RendererHints.Hint;
 import org.apache.brooklyn.core.config.render.RendererHints.NamedActionWithUrl;
+import org.apache.brooklyn.core.entity.Attributes;
 import org.apache.brooklyn.core.entity.Entities;
 import org.apache.brooklyn.core.entity.EntityAndAttribute;
+import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.entity.trait.Startable;
 import org.apache.brooklyn.core.location.AbstractLocation;
 import org.apache.brooklyn.core.location.LocationConfigKeys;
@@ -119,6 +122,15 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
     @Override
     public DockerContainerLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
+        while (!Lifecycle.RUNNING.equals(dockerHost.getAttribute(Attributes.SERVICE_STATE_ACTUAL))) {
+            try {
+                Thread.sleep(1000L);
+            }
+            catch (InterruptedException e) {
+                throw new NoMachinesAvailableException("Interrupted while waiting for service to start", e);
+            }
+        }
+
         lock.lock();
         try {
             // Lookup entity from context or flags
