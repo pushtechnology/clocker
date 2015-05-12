@@ -1,6 +1,7 @@
 package brooklyn.location.docker.strategy;
 
 import java.util.Collection;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -15,8 +16,11 @@ import com.google.common.collect.Iterables;
  * Only remove hosts that do not have any containers.
  * @author Matt Champion on 02/05/15
  */
-public final class DockerHostRemovalStrategy implements Function<Collection<Entity>, Entity> {
+public final class EmptyDockerHostRemovalStrategy implements Function<Collection<Entity>, Entity> {
     private static final Predicate<Entity> EMPTY_HOST_PREDICATE = new EmptyHostPredicate();
+
+    public EmptyDockerHostRemovalStrategy() {
+    }
 
     @Override
     public Entity apply(Collection<Entity> entities) {
@@ -60,6 +64,29 @@ public final class DockerHostRemovalStrategy implements Function<Collection<Enti
             else {
                 return false;
             }
+        }
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName();
+    }
+
+    @Override
+    public int hashCode() {
+        return 7;
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (object == null) {
+            return false;
+        }
+        else if (object == this) {
+            return true;
+        }
+        else {
+            return object instanceof EmptyDockerHostRemovalStrategy;
         }
     }
 }
