@@ -57,7 +57,6 @@ import brooklyn.location.basic.BasicLocationRegistry;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.location.docker.DockerResolver;
 import brooklyn.location.docker.strategy.DoNothingHostStrategy;
-import brooklyn.location.docker.strategy.DockerHostRemovalStrategy;
 import brooklyn.location.docker.strategy.EmptyDockerHostRemovalStrategy;
 import brooklyn.location.docker.strategy.NoAvailableHostStrategy;
 import brooklyn.management.LocationManager;
