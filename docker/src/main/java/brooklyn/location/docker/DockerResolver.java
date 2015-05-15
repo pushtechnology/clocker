@@ -151,7 +151,12 @@ public class DockerResolver implements EnableableLocationResolver {
         if (dockerHostId == null) {
             for (Location location : managedLocations) {
                 if (location instanceof DockerLocation) {
-                    if (((DockerLocation) location).getOwner().getId().equals(infrastructureId)) {
+                    final DockerLocation dockerLocation = (DockerLocation)location;
+                    if (dockerLocation.getOwner() == null) {
+                        // The location has been recover during rebind but not yet closed
+                        continue;
+                    }
+                    else if (dockerLocation.getOwner().getId().equals(infrastructureId)) {
                         return location;
                     }
                 }
