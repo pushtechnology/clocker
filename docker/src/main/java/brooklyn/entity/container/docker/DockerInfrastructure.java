@@ -148,6 +148,12 @@ public interface DockerInfrastructure extends StartableApplication, Resizable, L
     @SetFromFlag("registryPassword")
     ConfigKey<String> DOCKER_IMAGE_REGISTRY_PASSWORD = ConfigKeys.newStringConfigKey("docker.registry.password", "Password for docker registry access");
 
+    ConfigKey<String> DOCKER_LOGIN_USER = ConfigKeys.newStringConfigKey("docker.host.login.user", "User to login to Dockerhub");
+
+    ConfigKey<String> DOCKER_LOGIN_EMAIL = ConfigKeys.newStringConfigKey("docker.host.login.email", "Email to login to Dockerhub");
+
+    ConfigKey<String> DOCKER_LOGIN_PASSWORD = ConfigKeys.newStringConfigKey("docker.host.login.password", "Password to login to Dockerhub");
+
     AttributeSensor<Entity> DOCKER_IMAGE_REGISTRY = DockerAttributes.DOCKER_IMAGE_REGISTRY;
 
     AttributeSensor<DynamicCluster> DOCKER_HOST_CLUSTER = Sensors.newSensor(DynamicCluster.class, "docker.hosts", "Docker host cluster");
