@@ -90,7 +90,6 @@ import brooklyn.util.text.Identifiers;
 import brooklyn.util.text.StringPredicates;
 import brooklyn.util.text.Strings;
 import brooklyn.util.time.Duration;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -455,7 +454,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
 
         Maybe<SshMachineLocation> found = Machines.findUniqueSshMachineLocation(getLocations());
         String dockerLocationSpec = String.format("jclouds:docker:https://%s:%s",
-                found.get().getSshHostAndPort().getHostText(), getDockerPort());
+            found.get().getSshHostAndPort().getHostText(), getDockerPort());
         String certificatePath = config().get(DockerInfrastructure.DOCKER_CERTIFICATE_PATH);
         String keyPath = config().get(DockerInfrastructure.DOCKER_KEY_PATH);
         JcloudsLocation jcloudsLocation = (JcloudsLocation) getManagementContext().getLocationRegistry()
@@ -484,6 +483,13 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     @Override
     public void postStart() {
         ((EntityLocal) getAttribute(DOCKER_CONTAINER_CLUSTER)).setAttribute(SERVICE_UP, Boolean.TRUE);
+
+        if (Strings.isNonBlank(getConfig(DOCKER_LOGIN_USER))) {
+            getDriver().loginToRepository(
+                getConfig(DOCKER_LOGIN_USER),
+                getConfig(DOCKER_LOGIN_EMAIL),
+                getConfig(DOCKER_LOGIN_PASSWORD));
+        }
 
         if (Boolean.TRUE.equals(getAttribute(DOCKER_INFRASTRUCTURE).config().get(SdnAttributes.SDN_ENABLE))) {
             LOG.info("Waiting on SDN agent");
