@@ -643,6 +643,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
             certPath = config().get(DockerInfrastructure.DOCKER_CLIENT_CERTIFICATE_PATH);
             keyPath = config().get(DockerInfrastructure.DOCKER_CLIENT_KEY_PATH);
         }
+
         JcloudsLocation jcloudsLocation = (JcloudsLocation) getManagementContext().getLocationRegistry()
                 .resolve(dockerLocationSpec, MutableMap.builder()
                         .put("identity", certPath)
@@ -673,6 +674,13 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     @Override
     public void postStart() {
         sensors().get(DOCKER_CONTAINER_CLUSTER).sensors().set(SERVICE_UP, Boolean.TRUE);
+
+        if (Strings.isNonBlank(getConfig(DOCKER_LOGIN_USER))) {
+            getDriver().loginToRepository(
+                getConfig(DOCKER_LOGIN_USER),
+                getConfig(DOCKER_LOGIN_EMAIL),
+                getConfig(DOCKER_LOGIN_PASSWORD));
+        }
 
         if (Boolean.TRUE.equals(sensors().get(DOCKER_INFRASTRUCTURE).config().get(SdnAttributes.SDN_ENABLE))) {
             LOG.info("Waiting on SDN agent");
