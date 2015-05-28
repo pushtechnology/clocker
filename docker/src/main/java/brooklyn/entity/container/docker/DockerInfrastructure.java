@@ -128,6 +128,12 @@ public interface DockerInfrastructure extends BasicStartable, Resizable, Locatio
     @SetFromFlag("dockerApiVersion")
     ConfigKey<String> DOCKER_API_VERSION = ConfigKeys.newStringConfigKey("docker.api.version", "Version of Docker REST API", "1.16");
 
+    ConfigKey<String> DOCKER_LOGIN_USER = ConfigKeys.newStringConfigKey("docker.host.login.user", "User to login to Dockerhub");
+
+    ConfigKey<String> DOCKER_LOGIN_EMAIL = ConfigKeys.newStringConfigKey("docker.host.login.email", "Email to login to Dockerhub");
+
+    ConfigKey<String> DOCKER_LOGIN_PASSWORD = ConfigKeys.newStringConfigKey("docker.host.login.password", "Password to login to Dockerhub");
+
     AttributeSensor<DynamicCluster> DOCKER_HOST_CLUSTER = Sensors.newSensor(DynamicCluster.class, "docker.hosts", "Docker host cluster");
     AttributeSensor<DynamicGroup> DOCKER_CONTAINER_FABRIC = Sensors.newSensor(DynamicGroup.class, "docker.fabric", "Docker container fabric");
     AttributeSensor<DynamicMultiGroup> DOCKER_APPLICATIONS = Sensors.newSensor(DynamicMultiGroup.class, "docker.buckets", "Docker applications");

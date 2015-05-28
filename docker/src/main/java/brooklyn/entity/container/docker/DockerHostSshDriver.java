@@ -108,6 +108,14 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         return getEntity().getAttribute(DockerHost.DOCKER_SSL_PORT);
     }
 
+    @Override
+    public void loginToRepository(String username, String email, String password) {
+        newScript("Logging in")
+            .body.append(format("docker login -u %s -e %s -p %s", username, email, password))
+            .failOnNonZeroResultCode()
+            .execute();
+    }
+
     /** {@inheritDoc} */
     @Override
     public String buildImage(String dockerFile, String name) {
@@ -145,7 +153,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         checkNotNull(name, "name");
         checkNotNull(tag, "tag");
         copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE),
-                true, ImmutableMap.<String, Object>of("fullyQualifiedImageName", name + ":" + tag));
+            true, ImmutableMap.<String, Object>of("fullyQualifiedImageName", name + ":" + tag));
         String sshdImageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, name);
         log.info("Created SSH-based image from {} with ID {}", name, sshdImageId);
 

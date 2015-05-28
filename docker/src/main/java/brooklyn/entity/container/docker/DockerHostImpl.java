@@ -492,6 +492,13 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     public void postStart() {
         ((EntityLocal) getAttribute(DOCKER_CONTAINER_CLUSTER)).setAttribute(SERVICE_UP, Boolean.TRUE);
 
+        if (Strings.isNonBlank(getConfig(DOCKER_LOGIN_USER))) {
+            getDriver().loginToRepository(
+                getConfig(DOCKER_LOGIN_USER),
+                getConfig(DOCKER_LOGIN_EMAIL),
+                getConfig(DOCKER_LOGIN_PASSWORD));
+        }
+
         if (Boolean.TRUE.equals(getAttribute(DOCKER_INFRASTRUCTURE).config().get(SdnAttributes.SDN_ENABLE))) {
             LOG.info("Waiting on SDN agent");
             SdnAgent agent = Entities.attributeSupplierWhenReady(this, SdnAgent.SDN_AGENT).get();
