@@ -170,7 +170,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     }
 
     private String buildDockerfileDirectory(String name) {
-        String build = format("build --rm -t %s %s",
+        String build = format("build --no-cache --rm -t %s %s",
                 name, Os.mergePaths(getRunDir(), name));
         String stdout = ((DockerHost) getEntity()).runDockerCommandTimeout(build, Duration.minutes(20));
         String prefix = Strings.getFirstWordAfter(stdout, "Successfully built");
@@ -179,8 +179,8 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     }
 
     private String buildDockerfile(String dockerfile, String name) {
-        String build = format("build --rm -t %s - < %s",
-            name, Os.mergePaths(getRunDir(), name, dockerfile));
+        String build = format("build --no-cache --rm -t %s - < %s",
+                name, Os.mergePaths(getRunDir(), name, dockerfile));
         String stdout = ((DockerHost) getEntity()).runDockerCommandTimeout(build, Duration.minutes(20));
         String prefix = Strings.getFirstWordAfter(stdout, "Successfully built");
 
@@ -379,7 +379,6 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                     sudo("rpm -qa | grep epel-release"),
                     sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
     }
-
     private String installDockerOnUbuntu() {
         final String version = getVersion();
         log.debug("Installing Docker version {} on Ubuntu", version);
