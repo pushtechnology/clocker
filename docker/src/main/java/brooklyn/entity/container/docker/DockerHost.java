@@ -208,6 +208,12 @@ public interface DockerHost extends MachineEntity, Resizable, HasShortName, Loca
             @EffectorParam(name="substitutions", description="Extra template substitutions for the Dockerfile") Map<String, Object> substitutions);
 
     /**
+     * Rebuilds the base image and returns the image ID.
+     */
+    @Effector(description="Rebuilds the base image and returns the image ID")
+    String updateBaseImage();
+
+    /**
      * Create an SSHable image based on the image with the given name.
      *
      * @param baseImage The parent image to base the new image on, e.g. "tomcat" or "redis"
