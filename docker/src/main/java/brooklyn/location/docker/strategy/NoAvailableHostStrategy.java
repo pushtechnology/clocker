@@ -12,15 +12,15 @@ import brooklyn.policy.Policy;
  * Action to take when attempting to provision an entity in a docker cloud location and no hosts are available.
  * @author Matt Champion on 24/04/15
  */
-public interface NoAvailableHostStrategy extends Policy {
+public interface NoAvailableHostStrategy {
 
     /**
-     * Handle the behaviour when their are no hosts
+     * Perform an action when there are no hosts. This is only called when synchronized on the {@link DockerLocation}.
+     * It should return true to indicate that another attempt to provision a container should go ahead. False will
+     * result in the Docker location failing to provision a container. Until it returns false it may be repeatedly
+     * called for the same entity.
      * @param location The location that has no hosts
-     * @param newEntity The entity being deployed
-     * @param flags The flags to provision with
-     * @return A newly provisioned host
-     * @throws NoMachinesAvailableException if a host cannot be provisioned
+     * @return {@code true} if there should be an attempt to obtain a host again
      */
-    DockerHost handleNoHosts(DockerLocation location, Entity newEntity, Map<?, ?> flags) throws NoMachinesAvailableException;
+    boolean handleNoHosts(DockerLocation location);
 }

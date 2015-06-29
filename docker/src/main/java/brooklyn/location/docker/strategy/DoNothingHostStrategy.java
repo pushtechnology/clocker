@@ -3,17 +3,15 @@ package brooklyn.location.docker.strategy;
 import java.util.Map;
 
 import brooklyn.entity.Entity;
-import brooklyn.entity.container.docker.DockerHost;
-import brooklyn.location.NoMachinesAvailableException;
 import brooklyn.location.docker.DockerLocation;
-import brooklyn.policy.basic.AbstractPolicy;
 
 /**
+ * This will result in the failure to provision a container.
  * @author Matt Champion on 26/04/15
  */
-public final class DoNothingHostStrategy extends AbstractPolicy implements NoAvailableHostStrategy {
+public final class DoNothingHostStrategy implements NoAvailableHostStrategy {
     @Override
-    public DockerHost handleNoHosts(DockerLocation location, Entity newEntity, Map<?, ?> flags) throws NoMachinesAvailableException {
-        throw new NoMachinesAvailableException("No machines available, taking no action");
+    public boolean handleNoHosts(DockerLocation location) {
+        return false;
     }
 }

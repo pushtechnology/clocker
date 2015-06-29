@@ -56,9 +56,7 @@ import brooklyn.location.basic.BasicLocationDefinition;
 import brooklyn.location.basic.BasicLocationRegistry;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.location.docker.DockerResolver;
-import brooklyn.location.docker.strategy.DoNothingHostStrategy;
 import brooklyn.location.docker.strategy.EmptyDockerHostRemovalStrategy;
-import brooklyn.location.docker.strategy.NoAvailableHostStrategy;
 import brooklyn.management.LocationManager;
 import brooklyn.management.ManagementContext;
 import brooklyn.networking.sdn.SdnAttributes;
@@ -69,7 +67,6 @@ import brooklyn.util.collections.MutableMap;
 import brooklyn.util.collections.QuorumCheck.QuorumChecks;
 import brooklyn.util.text.Strings;
 import brooklyn.util.time.Duration;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -330,14 +327,6 @@ public class DockerInfrastructureImpl extends BasicStartableImpl implements Dock
 
         final Location provisioner = Iterables.getOnlyElement(locations);
         LOG.info("Creating new DockerLocation wrapping {}", provisioner);
-
-        final PolicySpec<NoAvailableHostStrategy> spec = config().get(NO_HOST_STRATEGY_SPEC);
-        if (spec != null) {
-            addPolicy(spec);
-        }
-        else {
-            addPolicy(PolicySpec.create(DoNothingHostStrategy.class));
-        }
 
         Map<String, ?> flags = MutableMap.<String, Object>builder()
                 .putAll(config().get(LOCATION_FLAGS))
