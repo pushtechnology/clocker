@@ -48,7 +48,7 @@
 
         <!-- Dependencies -->
         <jclouds.groupId>org.apache.jclouds</jclouds.groupId>
-        <jclouds.version>1.9.0</jclouds.version>
+        <jclouds.version>1.9.1-DIFFUSION-R55-SNAPSHOT</jclouds.version>
 
         <!-- Testing -->
         <testng.version>6.8</testng.version>
