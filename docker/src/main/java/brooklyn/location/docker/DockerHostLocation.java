@@ -173,6 +173,9 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
                 LOG.info("Created SSHable image from {}: {}", baseImage.get(), imageId);
                 entity.config().set(SoftwareProcess.SKIP_INSTALLATION, true);
             } else {
+                // Create latch for image name
+                images.putIfAbsent(imageName, new CountDownLatch(1));
+
                 // Otherwise Clocker is going to make an image for the entity once it is installed.
                 insertCallback(entity, SoftwareProcess.POST_INSTALL_COMMAND, DockerCallbacks.commit());
 
@@ -186,8 +189,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
                     imageId = getOwner().getAttribute(DockerHost.DOCKER_IMAGE_ID);
                 }
 
-                // Tag the image name and create its latch
-                images.putIfAbsent(imageName, new CountDownLatch(1));
+                // Tag image name
                 dockerHost.runDockerCommand(String.format("tag -f %s %s:latest", imageId, imageName));
             }
 
