@@ -352,7 +352,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             commands.add(installDockerOnUbuntu());
         } else if ("centos".equalsIgnoreCase(osDetails.getName()) && "7.0".equals(osDetails.getVersion())) {
             commands.add("sed -i \"s/Defaults    requiretty//\" /etc/sudoers"); // Allow sudo to be called by Brooklyn
-            commands.add(installPackage(ImmutableMap.of("yum", "docker"), null));
+            commands.add(installPackage(ImmutableMap.of("yum", "docker-" + getVersion()), null));
             commands.add("systemctl enable " + getService()); // Enable the service so that it starts on boot
         } else if ("centos".equalsIgnoreCase(osDetails.getName())) {
             commands.add(ifExecutableElse1("yum", useYum(osVersion, arch, getEpelRelease())));
@@ -438,7 +438,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             // CentOS will not have lxc and requires config through OPTIONS not other_args
             newScript(CUSTOMIZING)
                 .body.append(
-                format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlsverify --tlscacert=%<s/cert.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker"))
+                format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker"))
                 .failOnNonZeroResultCode()
                 .execute();
         }
