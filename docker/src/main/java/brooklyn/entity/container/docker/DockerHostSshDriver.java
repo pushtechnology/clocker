@@ -410,7 +410,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             // CentOS will not have lxc and requires config through OPTIONS not other_args
             newScript(CUSTOMIZING)
                 .body.append(
-                format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker"))
+                format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -s %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlsverify --tlscacert=%<s/cert.pem\"' | ", getDockerPort(), getStorageDriver(), getRunDir()) + sudo("tee -a /etc/sysconfig/docker"))
                 .failOnNonZeroResultCode()
                 .execute();
         }
