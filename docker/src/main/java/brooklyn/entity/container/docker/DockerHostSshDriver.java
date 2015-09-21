@@ -223,6 +223,8 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             } else if ("centos".equalsIgnoreCase(osDetails.getName()) && "7.0".equals(osDetails.getVersion())) {
                 commands.add("sed -i \"s/Defaults    requiretty//\" /etc/sudoers"); // Allow sudo to be called by Brooklyn
                 commands.add(installPackage(ImmutableMap.of("yum", "docker-" + getVersion()), null));
+                // CentOS 7 docker packages do not depend on lxc and do not use it as the execution environment by default
+                commands.add(installPackage(ImmutableMap.of("yum", "lxc"), null));
             } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
                 commands.add(ifExecutableElse1("yum", useYum(osVersion, arch, getEpelRelease())));
                 commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
