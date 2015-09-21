@@ -61,7 +61,7 @@ RUN if [ -f /etc/ssh/sshd_config ] ; then \
     echo AuthorizedKeysFile .ssh/authorized_keys >> /etc/ssh/sshd_config ; \
     echo PubkeyAuthentication yes >> /etc/ssh/sshd_config ; \
     echo RSAAuthentication yes >> /etc/ssh/sshd_config ; \
-  elif  -f /etc/sshd_config ] ; then \
+  elif [ -f /etc/sshd_config ] ; then \
     sed -i "/^#/ d" /etc/sshd_config ; \
     sed -i "/PasswordAuthentication/ d" /etc/sshd_config ; \
     sed -i "/GSSAPIAuthentication/ d" /etc/sshd_config ; \
