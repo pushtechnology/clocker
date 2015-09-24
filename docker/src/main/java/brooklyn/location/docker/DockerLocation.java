@@ -17,25 +17,11 @@ package brooklyn.location.docker;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Semaphore;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Objects.ToStringHelper;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.SetMultimap;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.location.MachineLocation;
@@ -44,8 +30,10 @@ import org.apache.brooklyn.api.location.NoMachinesAvailableException;
 import org.apache.brooklyn.api.mgmt.rebind.RebindContext;
 import org.apache.brooklyn.api.mgmt.rebind.RebindSupport;
 import org.apache.brooklyn.api.mgmt.rebind.mementos.LocationMemento;
+import org.apache.brooklyn.core.entity.Attributes;
 import org.apache.brooklyn.core.entity.Entities;
 import org.apache.brooklyn.core.entity.EntityFunctions;
+import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.location.AbstractLocation;
 import org.apache.brooklyn.core.location.LocationConfigKeys;
 import org.apache.brooklyn.core.location.dynamic.DynamicLocation;
@@ -55,13 +43,26 @@ import org.apache.brooklyn.location.ssh.SshMachineLocation;
 import org.apache.brooklyn.util.collections.MutableMap;
 import org.apache.brooklyn.util.core.flags.SetFromFlag;
 import org.apache.brooklyn.util.exceptions.Exceptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import brooklyn.entity.container.DockerAttributes;
 import brooklyn.entity.container.docker.DockerHost;
 import brooklyn.entity.container.docker.DockerInfrastructure;
 import brooklyn.location.docker.strategy.DockerAwarePlacementStrategy;
-import brooklyn.location.docker.strategy.DockerAwareProvisioningStrategy;
+import brooklyn.location.docker.strategy.NoAvailableHostStrategy;
 import brooklyn.networking.location.NetworkProvisioningExtension;
+import com.google.common.base.Objects.ToStringHelper;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
 
 public class DockerLocation extends AbstractLocation implements DockerVirtualLocation, MachineProvisioningLocation<MachineLocation>,
         DynamicLocation<DockerInfrastructure, DockerLocation>, Closeable {
@@ -79,8 +80,6 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
 
     @SetFromFlag("machines")
     private final SetMultimap<DockerHostLocation, String> containers = Multimaps.synchronizedSetMultimap(HashMultimap.<DockerHostLocation, String>create());
-
-    private transient Semaphore permit = new Semaphore(1);
 
     public DockerLocation() {
         this(Maps.newLinkedHashMap());
@@ -109,7 +108,7 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
     }
 
     public MachineLocation obtain() throws NoMachinesAvailableException {
-        return obtain(Maps.<String,Object>newLinkedHashMap());
+        return obtain(Maps.<String, Object>newLinkedHashMap());
     }
 
     @Override
@@ -121,74 +120,85 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
         }
         Entity entity = (Entity) context;
 
+        synchronized (this) {
+            final DockerHostLocation machine = obtainHostLocation(entity);
+            final DockerHost dockerHost = machine.getOwner();
+
+            // Now wait until the host has started up
+            Entities.waitForServiceUp(dockerHost);
+
+            // Obtain a new Docker container location, save and return it
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Obtain a new container from {} for {}", machine, entity);
+            }
+            Map<?, ?> hostFlags = MutableMap.copyOf(flags);
+            DockerContainerLocation container = machine.obtain(hostFlags);
+            containers.put(machine, container.getId());
+            return container;
+        }
+    }
+
+    /**
+     * Obtain a host location to provision a container on.
+     * @param newEntity The entity the container is being provisioned for
+     * @return The DockerHostLocation to use
+     * @throws NoMachinesAvailableException If there are no hosts that can be used to provision a container
+     */
+    private DockerHostLocation obtainHostLocation(Entity newEntity) throws NoMachinesAvailableException {
+        final NoAvailableHostStrategy noAvailableHostStrategy = infrastructure.getConfig(DockerInfrastructure.NO_HOST_STRATEGY);
+
+        List<DockerHostLocation> available;
+        boolean keepGoing;
+        do {
+            available = tryObtainHostLocation(newEntity);
+            if (available.size() == 0) {
+                keepGoing = noAvailableHostStrategy.handleNoHosts(this);
+            }
+            else {
+                return available.get(0);
+            }
+        }
+        while (keepGoing);
+        throw new NoMachinesAvailableException("No hosts found");
+    }
+
+    /**
+     * Attempt to obtain a docker host location.
+     * @param newEntity The entity the container is being provisioned for
+     * @return An ordered list of the preferred DockerHostLocations
+     */
+    private List<DockerHostLocation> tryObtainHostLocation(Entity newEntity) {
         // Get the available hosts based on placement strategies
-        List<DockerHostLocation> available = getDockerHostLocations();
+        // First get the locations of running hosts
+        List<DockerHostLocation> available = new ArrayList<DockerHostLocation>();
+        Iterables.addAll(available, Iterables.filter(getDockerHostLocations(), new Predicate<DockerHostLocation>() {
+            @Override
+            public boolean apply(DockerHostLocation location) {
+                final DockerHost host = location.getOwner();
+                return Lifecycle.RUNNING.equals(host.getAttribute(Attributes.SERVICE_STATE_ACTUAL));
+            }
+        }));
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("Placement for: {}", Iterables.toString(Iterables.transform(available, EntityFunctions.id())));
         }
+
+        // Apply infrastructure strategies
         for (DockerAwarePlacementStrategy strategy : strategies) {
-            available = strategy.filterLocations(available, entity);
+            available = strategy.filterLocations(available, newEntity);
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Placement after {}: {}", strategy, Iterables.toString(Iterables.transform(available, EntityFunctions.id())));
             }
         }
-        List<DockerAwarePlacementStrategy> entityStrategies = entity.config().get(DockerAttributes.PLACEMENT_STRATEGIES);
+
+        // Apply entity specific strategies
+        List<DockerAwarePlacementStrategy> entityStrategies = newEntity.config().get(DockerAttributes.PLACEMENT_STRATEGIES);
         if (entityStrategies != null && entityStrategies.size() > 0) {
             for (DockerAwarePlacementStrategy strategy : entityStrategies) {
-                available = strategy.filterLocations(available, entity);
-            }
-        } else {
-            entityStrategies = ImmutableList.of();
-        }
-
-        // Use the docker strategy to add a new host
-        DockerHostLocation machine = null;
-        DockerHost dockerHost = null;
-        if (available.size() > 0) {
-            machine = available.get(0);
-            dockerHost = machine.getOwner();
-        } else {
-            // Get permission to create a new Docker host
-            if (permit.tryAcquire()) {
-                try {
-                    Iterable<DockerAwareProvisioningStrategy> provisioningStrategies = Iterables.filter(Iterables.concat(strategies,  entityStrategies), DockerAwareProvisioningStrategy.class);
-                    for (DockerAwareProvisioningStrategy strategy : provisioningStrategies) {
-                        flags = strategy.apply((Map<String,Object>) flags);
-                    }
-
-                    LOG.info("Provisioning new host with flags: {}", flags);
-                    SshMachineLocation provisioned = getProvisioner().obtain(flags);
-                    Entity added = getDockerInfrastructure().getDockerHostCluster().addNode(provisioned, MutableMap.of());
-                    dockerHost = (DockerHost) added;
-                    machine = dockerHost.getDynamicLocation();
-                    Entities.start(added, ImmutableList.of(provisioned));
-                } finally {
-                    permit.release();
-                }
-            } else {
-                // Wait until whoever has the permit releases it, and try again
-                try {
-                    permit.acquire();
-                } catch (InterruptedException ie) {
-                    Exceptions.propagate(ie);
-                } finally {
-                    permit.release();
-                }
-                return obtain(flags);
+                available = strategy.filterLocations(available, newEntity);
             }
         }
-
-        // Now wait until the host has started up
-        Entities.waitForServiceUp(dockerHost);
-
-        // Obtain a new Docker container location, save and return it
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Obtain a new container from {} for {}", machine, entity);
-        }
-        Map<?,?> hostFlags = MutableMap.copyOf(flags);
-        DockerContainerLocation container = machine.obtain(hostFlags);
-        containers.put(machine, container.getId());
-        return container;
+        return available;
     }
 
     @Override

@@ -46,7 +46,9 @@ import brooklyn.entity.container.DockerAttributes;
 import brooklyn.entity.container.DockerUtils;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.location.docker.strategy.DepthFirstPlacementStrategy;
+import brooklyn.location.docker.strategy.DoNothingHostStrategy;
 import brooklyn.location.docker.strategy.DockerAwarePlacementStrategy;
+import brooklyn.location.docker.strategy.NoAvailableHostStrategy;
 import brooklyn.location.docker.strategy.affinity.AffinityRules;
 import brooklyn.networking.sdn.SdnAttributes;
 
@@ -78,6 +80,10 @@ public interface DockerInfrastructure extends BasicStartable, Resizable, Locatio
     @SetFromFlag("strategies")
     ConfigKey<List<DockerAwarePlacementStrategy>> PLACEMENT_STRATEGIES = ConfigKeys.newConfigKeyWithDefault(DockerAttributes.PLACEMENT_STRATEGIES,
             MutableList.<DockerAwarePlacementStrategy>of(new DepthFirstPlacementStrategy()));
+
+    @SetFromFlag("noAvailableHostStrategy")
+    ConfigKey<NoAvailableHostStrategy> NO_HOST_STRATEGY = ConfigKeys
+            .newConfigKey(NoAvailableHostStrategy.class, "docker.host.none.available", "Strategy for when there are no available hosts", new DoNothingHostStrategy());
 
     @SetFromFlag("highAvailabilty")
     ConfigKey<Boolean> HA_POLICY_ENABLE = ConfigKeys.newBooleanConfigKey("docker.policy.ha.enable",
