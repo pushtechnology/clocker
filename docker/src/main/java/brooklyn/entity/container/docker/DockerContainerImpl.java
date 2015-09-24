@@ -37,7 +37,6 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -61,7 +60,6 @@ import org.apache.brooklyn.core.config.ConfigKeys;
 import org.apache.brooklyn.core.config.render.RendererHints;
 import org.apache.brooklyn.core.entity.Attributes;
 import org.apache.brooklyn.core.entity.Entities;
-import org.apache.brooklyn.core.entity.EntityInternal;
 import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.entity.lifecycle.ServiceStateLogic;
 import org.apache.brooklyn.core.feed.ConfigToAttributes;
@@ -601,7 +599,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     }
 
     @Override
-    public void start(Collection<? extends Location> locations) {
+    public synchronized void start(Collection<? extends Location> locations) {
         ServiceStateLogic.setExpectedState(this, Lifecycle.STARTING);
 
         Boolean started = config().get(SoftwareProcess.ENTITY_STARTED);
@@ -634,8 +632,8 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     }
 
     @Override
-    public void stop() {
-        Lifecycle state = sensors().get(SERVICE_STATE_ACTUAL);
+    public synchronized void stop() {
+        Lifecycle state = getAttribute(SERVICE_STATE_ACTUAL);
         if (Lifecycle.STOPPING.equals(state) || Lifecycle.STOPPED.equals(state)) {
             LOG.debug("Ignoring request to stop {} when it is already {}", this, state);
             LOG.trace("Duplicate stop came from: \n" + Joiner.on("\n").join(Thread.getAllStackTraces().get(Thread.currentThread())));
