@@ -341,7 +341,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         newScript(CUSTOMIZING)
                 .body.append(
                         ifExecutableElse0("apt-get", chainGroup(
-                                format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock %s --tlsverify --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
+                                format("echo 'DOCKER_OPTS=\"-H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
                                                 getDockerPort(), getStorageOpts(), getRunDir()) +
                                         sudo("tee -a /etc/default/docker"),
                                 sudo("groupadd -f docker"),
@@ -349,11 +349,11 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                                 sudo("newgrp docker"))),
                         ifExecutableElse0("yum",
                                 ifCentos7(
-                                    format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc %s --tlsverify --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
+                                    format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
                                                     getDockerPort(), getStorageOpts(), getRunDir()) +
                                             sudo("tee -a /etc/sysconfig/docker"),
 
-                                    format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc %s --tlsverify --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
+                                    format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc %s --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
                                                     getDockerPort(), getStorageOpts(), getRunDir()) +
                                             sudo("tee -a /etc/sysconfig/docker"))))
                 .failOnNonZeroResultCode()
