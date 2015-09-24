@@ -82,6 +82,14 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         return getEntity().sensors().get(DockerHost.DOCKER_SSL_PORT);
     }
 
+    @Override
+    public void loginToRepository(String username, String email, String password) {
+        newScript("Logging in")
+            .body.append(format("docker login -u %s -e %s -p %s", username, email, password))
+            .failOnNonZeroResultCode()
+            .execute();
+    }
+
     /** {@inheritDoc} */
     @Override
     public String buildImage(String dockerfile, Optional<String> entrypoint, Optional<String> contextArchive, String name, boolean useSsh, Map<String, Object> substitutions) {
@@ -404,8 +412,8 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         newScript(LAUNCHING)
                 .body.append(
                         alternatives(
-                                ifExecutableElse1("boot2docker", "boot2docker up"),
-                                ifExecutableElse1("service", sudo("service docker start"))))
+                            ifExecutableElse1("boot2docker", "boot2docker up"),
+                            ifExecutableElse1("service", sudo("service docker start"))))
                 .failOnNonZeroResultCode()
                 .uniqueSshConnection()
                 .execute();
