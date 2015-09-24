@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -227,6 +228,11 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             commands.add(INSTALL_CURL);
             if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
                 commands.add(installDockerOnUbuntu());
+            } else if ("centos".equalsIgnoreCase(osDetails.getName()) && "7.0".equals(osDetails.getVersion())) {
+                commands.add("sed -i \"s/Defaults    requiretty//\" /etc/sudoers"); // Allow sudo to be called by Brooklyn
+                commands.add(installPackage(ImmutableMap.of("yum", "docker-" + getVersion()), null));
+                // CentOS 7 docker packages do not depend on lxc and do not use it as the execution environment by default
+                commands.add(installPackage(ImmutableMap.of("yum", "lxc"), null));
             } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
                 commands.add(ifExecutableElse1("yum", useYum(osVersion, arch, getEpelRelease())));
                 commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
@@ -342,9 +348,14 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                                 sudo(format("gpasswd -a %s docker", getMachine().getUser())),
                                 sudo("newgrp docker"))),
                         ifExecutableElse0("yum",
-                                format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc %s --tlsverify --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
-                                                getDockerPort(), getStorageOpts(), getRunDir()) +
-                                        sudo("tee -a /etc/sysconfig/docker")))
+                                ifCentos7(
+                                    format("echo 'OPTIONS=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc %s --tlsverify --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
+                                                    getDockerPort(), getStorageOpts(), getRunDir()) +
+                                            sudo("tee -a /etc/sysconfig/docker"),
+
+                                    format("echo 'other_args=\"--selinux-enabled -H tcp://0.0.0.0:%d -H unix:///var/run/docker.sock -e lxc %s --tlsverify --tls --tlscert=%s/cert.pem --tlskey=%<s/key.pem --tlscacert=%<s/ca.pem\"' | ",
+                                                    getDockerPort(), getStorageOpts(), getRunDir()) +
+                                            sudo("tee -a /etc/sysconfig/docker"))))
                 .failOnNonZeroResultCode()
                 .execute();
 
@@ -410,4 +421,15 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         return builder.build();
     }
 
+    private static String ifCentos7(String ifTrue, String otherwise) {
+        return Strings.join(ImmutableList.<String>builder()
+            .add(format("if test -e /etc/os-release -a " +
+                "-n \"`cat /etc/os-release | grep \"CentOS Linux\"`\" " +
+                "-a \"VERSION_ID=\\\"7\\\"\" = \"`cat /etc/os-release | grep VERSION_ID`\" ; then"))
+            .add(ifTrue)
+            .add("else")
+            .add(otherwise)
+            .add("fi")
+            .build(), "\n");
+    }
 }
