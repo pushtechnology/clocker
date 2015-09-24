@@ -53,7 +53,6 @@ import org.jclouds.softlayer.features.VirtualGuestApi;
 import org.jclouds.softlayer.reference.SoftLayerConstants;
 
 import org.apache.brooklyn.api.entity.Entity;
-import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.api.entity.EntitySpec;
 import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.api.location.LocationDefinition;
@@ -133,7 +132,11 @@ import brooklyn.networking.subnet.SubnetTierImpl;
 public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
 
     private static final Logger LOG = LoggerFactory.getLogger(DockerHost.class);
-
+    /*
+     * Mutex for scanning containers and creating transitory containers. Building an image creates temporary containers
+     * we want Brooklyn to ignore.
+     */
+    private final transient Object transientContainerCreationMutex = new Object();
     private transient FunctionFeed scan;
 
     @Override
@@ -393,9 +396,32 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     }
 
     @Override
+    public String updateBaseImage() {
+        if (scan != null) {
+            scan.suspend();
+        }
+
+        final String dockerfileUrl = config().get(DockerInfrastructure.DOCKERFILE_URL);
+        final String imageName = DockerUtils.imageName(this, dockerfileUrl);
+        final String imageId;
+        synchronized (transientContainerCreationMutex) {
+            imageId = buildImage(dockerfileUrl, null, null, imageName, config().get(DockerHost.DOCKER_USE_SSH), ImmutableMap.<String, Object>of("fullyQualifiedImageName", imageName));
+        }
+        sensors().set(DOCKER_IMAGE_NAME, imageName);
+
+        if (scan != null) {
+            scan.resume();
+        }
+        return imageId;
+    }
+
+    @Override
     public String layerSshableImageOn(String baseImage, String tag) {
-        String imageId = getDriver().layerSshableImageOn(baseImage, tag);
-        LOG.debug("Successfully added SSHable layer as {} from {}", imageId, baseImage);
+        final String imageId;
+        synchronized (transientContainerCreationMutex) {
+            imageId = getDriver().layerSshableImageOn(baseImage, tag);
+        }
+        LOG.debug("Successfully created SSHable image {} from {}", imageId, baseImage);
         return imageId;
     }
 
@@ -684,10 +710,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         String imageId = config().get(DOCKER_IMAGE_ID);
 
         if (Strings.isBlank(imageId)) {
-            String dockerfileUrl = config().get(DockerInfrastructure.DOCKERFILE_URL);
-            String imageName = DockerUtils.imageName(this, dockerfileUrl);
-            imageId = buildImage(dockerfileUrl, null, null, imageName, config().get(DockerHost.DOCKER_USE_SSH), ImmutableMap.<String, Object>of("fullyQualifiedImageName", imageName));
-            sensors().set(DOCKER_IMAGE_NAME, imageName);
+            imageId = updateBaseImage();
         }
 
         sensors().set(DOCKER_IMAGE_ID, imageId);
@@ -752,22 +775,23 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         // TODO remember that _half started_ containers left behind are not to be re-used
         // TODO add cleanup for these?
         getDynamicLocation().getLock().lock();
-        try {
-            String output = runDockerCommand("ps");
-            List<String> ps = Splitter.on(CharMatcher.anyOf("\r\n")).omitEmptyStrings().splitToList(output);
-            if (ps.size() > 1) {
-                for (int i = 1; i < ps.size(); i++) {
-                    String line = ps.get(i);
-                    String id = Strings.getFirstWord(line);
-                    Optional<Entity> container = Iterables.tryFind(getDockerContainerCluster().getMembers(),
+        synchronized (transientContainerCreationMutex) {
+            try {
+                String output = runDockerCommand("ps");
+                List<String> ps = Splitter.on(CharMatcher.anyOf("\r\n")).omitEmptyStrings().splitToList(output);
+                if (ps.size() > 1) {
+                    for (int i = 1; i < ps.size(); i++) {
+                        String line = ps.get(i);
+                        String id = Strings.getFirstWord(line);
+                        Optional<Entity> container = Iterables.tryFind(getDockerContainerCluster().getMembers(),
                             Predicates.compose(StringPredicates.startsWith(id), EntityFunctions.attribute(DockerContainer.CONTAINER_ID)));
-                    if (container.isPresent()) continue;
+                        if (container.isPresent()) continue;
 
-                    // Build a DockerContainer without a locations, as it may not be SSHable
-                    String containerId = Strings.getFirstWord(runDockerCommand("inspect --format {{.Id}} " + id));
-                    String imageId = Strings.getFirstWord(runDockerCommand("inspect --format {{.Image}} " + id));
-                    String imageName = Strings.getFirstWord(runDockerCommand("inspect --format {{.Config.Image}} " + id));
-                    EntitySpec<DockerContainer> containerSpec = EntitySpec.create(config().get(DOCKER_CONTAINER_SPEC))
+                        // Build a DockerContainer without a locations, as it may not be SSHable
+                        String containerId = Strings.getFirstWord(runDockerCommand("inspect --format {{.Id}} " + id));
+                        String imageId = Strings.getFirstWord(runDockerCommand("inspect --format {{.Image}} " + id));
+                        String imageName = Strings.getFirstWord(runDockerCommand("inspect --format {{.Config.Image}} " + id));
+                        EntitySpec<DockerContainer> containerSpec = EntitySpec.create(config().get(DOCKER_CONTAINER_SPEC))
                             .configure(SoftwareProcess.ENTITY_STARTED, Boolean.TRUE)
                             .configure(DockerContainer.DOCKER_HOST, this)
                             .configure(DockerContainer.DOCKER_INFRASTRUCTURE, getInfrastructure())
@@ -775,16 +799,18 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
                             .configure(DockerContainer.DOCKER_IMAGE_NAME, imageName)
                             .configure(DockerContainer.LOCATION_FLAGS, MutableMap.of("container", getMachine()));
 
-                    // Create, manage and start the container
-                    DockerContainer added = getDockerContainerCluster().addChild(containerSpec);
-                    Entities.manage(added);
-                    getDockerContainerCluster().addMember(added);
-                    added.sensors().set(DockerContainer.CONTAINER_ID, containerId);
-                    added.start(ImmutableList.of(getDynamicLocation().getMachine()));
+                        // Create, manage and start the container
+                        DockerContainer added = getDockerContainerCluster().addChild(containerSpec);
+                        Entities.manage(added);
+                        getDockerContainerCluster().addMember(added);
+                        added.sensors().set(DockerContainer.CONTAINER_ID, containerId);
+                        added.start(ImmutableList.of(getDynamicLocation().getMachine()));
+                    }
                 }
             }
-        } finally {
-            getDynamicLocation().getLock().unlock();
+            finally {
+                getDynamicLocation().getLock().unlock();
+            }
         }
     }
 

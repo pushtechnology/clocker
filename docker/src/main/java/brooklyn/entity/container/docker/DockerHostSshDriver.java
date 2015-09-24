@@ -128,7 +128,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         checkNotNull(name, "name");
         checkNotNull(tag, "tag");
         copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE),
-                true, ImmutableMap.<String, Object>of("fullyQualifiedImageName", name + ":" + tag));
+            true, ImmutableMap.<String, Object>of("fullyQualifiedImageName", name + ":" + tag));
         String sshdImageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, name);
         log.info("Created SSH-based image from {} with ID {}", name, sshdImageId);
 
@@ -136,7 +136,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     }
 
     private String buildDockerfileDirectory(String name) {
-        String build = format("build --rm -t %s %s",
+        String build = format("build --no-cache --rm -t %s %s",
                 name, Os.mergePaths(getRunDir(), name));
         String stdout = ((DockerHost) getEntity()).runDockerCommandTimeout(build, Duration.minutes(20));
         String prefix = Strings.getFirstWordAfter(stdout, "Successfully built");
@@ -145,7 +145,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     }
 
     private String buildDockerfile(String dockerfile, String name) {
-        String build = format("build --rm -t %s - < %s",
+        String build = format("build --no-cache --rm -t %s - < %s",
                 name, Os.mergePaths(getRunDir(), name, dockerfile));
         String stdout = ((DockerHost) getEntity()).runDockerCommandTimeout(build, Duration.minutes(20));
         String prefix = Strings.getFirstWordAfter(stdout, "Successfully built");
@@ -289,8 +289,8 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         String osMajorVersion = osVersion.substring(0, osVersion.lastIndexOf("."));
         return chainGroup(
                 alternatives(
-                        sudo("rpm -qa | grep epel-release"),
-                        sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
+                    sudo("rpm -qa | grep epel-release"),
+                    sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
     }
 
     @Override
