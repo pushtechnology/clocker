@@ -160,6 +160,7 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DynamicCluster.MEMBER_SPEC, dockerHostSpec)
                 .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, true)
                 .displayName("Docker Hosts"));
 
         DynamicGroup fabric = addChild(EntitySpec.create(DynamicGroup.class)
