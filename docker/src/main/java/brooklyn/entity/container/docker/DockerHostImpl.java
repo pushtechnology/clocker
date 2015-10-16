@@ -436,7 +436,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     @Override
     public String runDockerCommandTimeout(String command, Duration timeout) {
         if (command.startsWith("build") || command.startsWith("pull")) {
-            return runDockerCommandWithRetry(command, timeout, 3);
+            return runDockerCommandWithRetry(command, timeout, config().get(DockerHost.PULL_RETRIES));
         }
 
         // FIXME Set DOCKER_OPTS values in command-line for when running on localhost
@@ -445,6 +445,14 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         return stdout;
     }
 
+    /**
+     * Runs the Docker command and retires on failure. The reties are an attempt to recover from i/o timeout errors when
+     * pulling Docker images.
+     * @param command the Docker command to run
+     * @param timeout the maximum time take to wait for a command to complete
+     * @param retries the number of times to attempt the command
+     * @return the stdout from a successful execution of the command
+     */
     private String runDockerCommandWithRetry(String command, Duration timeout, int retries) {
         final SshEffectorTasks.SshEffectorTaskFactory<Integer> taskFactory = SshEffectorTasks
             .ssh(BashCommands.sudo(String.format("docker %s", command)))
@@ -470,7 +478,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
                 throw Exceptions.propagate(e);
             }
             catch (ExecutionException e) {
-                LOG.info("Docker command '{}' failed", command, e.getCause());
+                LOG.debug("Docker command '{}' failed", command, e.getCause());
                 errorReport.add(e.getCause().getMessage());
             }
             catch (TimeoutException e) {
@@ -478,7 +486,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
             }
 
             if (result == null || result != 0) {
-                LOG.info("Docker command '{}' failed '{}'", command, task.getStderr());
+                LOG.debug("Docker command '{}' failed '{}'", command, task.getStderr());
                 errorReport.add(task.getStderr());
             }
             else {
