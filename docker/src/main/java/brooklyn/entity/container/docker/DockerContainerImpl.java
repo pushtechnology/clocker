@@ -428,9 +428,6 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
         // Log for debugging without password
         LOG.debug("Docker options for {}: {}", entity, options);
 
-        // Set login password from the Docker host
-        options.overrideLoginPassword(getDockerHost().getPassword());
-
         return options;
     }
 
