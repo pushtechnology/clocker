@@ -122,8 +122,14 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         }
 
         if (useSsh) {
+            final DockerHost host = (DockerHost) getEntity();
+            final Map<String, Object> sshSubstitutions = MutableMap.copyOf(substitutions);
+            final SshMachineLocation machine = host.getDynamicLocation().getMachine();
+            sshSubstitutions.put("ssh", MutableMap.of("authorisedKeys",
+                LocationConfigUtils.getOsCredential(machine.config().getBag()).getPublicKeyData()));
+
             // Update the image with the Clocker sshd Dockerfile
-            copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE), false, substitutions);
+            copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE), false, sshSubstitutions);
             imageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, name);
             log.info("Created SSHable Dockerfile image with ID {}", imageId);
         }
@@ -152,8 +158,9 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             "fullyQualifiedImageName", name + ":" + tag);
         final DockerHost host = (DockerHost) getEntity();
         templateSubstitutions.putAll(host.getInfrastructure().getConfig(DockerInfrastructure.DOCKERFILE_SUBSTITUTIONS));
+        final SshMachineLocation machine = host.getDynamicLocation().getMachine();
         templateSubstitutions.put("ssh", MutableMap.of("authorisedKeys",
-            LocationConfigUtils.getPublicKeyData(host.getDynamicLocation().getMachine().getAllConfigBag()).trim()));
+            LocationConfigUtils.getOsCredential(machine.config().getBag()).getPublicKeyData()));
         return templateSubstitutions;
     }
 
