@@ -145,7 +145,8 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
         EntitySpec<?> dockerHostSpec = EntitySpec.create(config().get(DOCKER_HOST_SPEC))
                 .configure(DockerHost.DOCKER_INFRASTRUCTURE, this)
                 .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
-                .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE);
+                .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE)
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false);
         String dockerVersion = config().get(DOCKER_VERSION);
         if (Strings.isNonBlank(dockerVersion)) {
             dockerHostSpec.configure(SoftwareProcess.SUGGESTED_VERSION, dockerVersion);
