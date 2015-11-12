@@ -16,14 +16,14 @@ FROM gliderlabs/alpine:3.1
 MAINTAINER andrew.kennedy@cloudsoft.io
 
 # CLOCKER_VERSION_BELOW
-LABEL version="1.1.0-DIFFUSION-5.6.0"
+LABEL version="1.1.0-DIFFUSION-5.6.1"
 
 RUN apk-install openjdk7-jre-base ; \
     apk-install bash ; \
     apk-install wget
 
 # CLOCKER_VERSION_BELOW
-RUN wget https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots\&g=io.brooklyn.clocker\&a=brooklyn-clocker-dist\&v=1.1.0-DIFFUSION-5.6.0\&c=dist\&e=tar.gz -O /brooklyn-clocker-dist.tar.gz ; \
+RUN wget https://oss.sonatype.org/service/local/artifact/maven/redirect?r=snapshots\&g=io.brooklyn.clocker\&a=brooklyn-clocker-dist\&v=1.1.0-DIFFUSION-5.6.1\&c=dist\&e=tar.gz -O /brooklyn-clocker-dist.tar.gz ; \
     tar zxf brooklyn-clocker-dist.tar.gz ; \
     rm -f brooklyn-clocker-dist.tar.gz
 
