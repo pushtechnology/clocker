@@ -36,6 +36,7 @@ import org.python.google.common.net.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import brooklyn.location.docker.strategy.EmptyDockerHostRemovalStrategy;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -160,6 +161,7 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DynamicCluster.MEMBER_SPEC, dockerHostSpec)
                 .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
+                .configure(DynamicCluster.REMOVAL_STRATEGY, new EmptyDockerHostRemovalStrategy())
                 .displayName("Docker Hosts"));
 
         DynamicGroup fabric = addChild(EntitySpec.create(DynamicGroup.class)
