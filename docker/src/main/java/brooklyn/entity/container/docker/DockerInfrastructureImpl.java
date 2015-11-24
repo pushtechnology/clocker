@@ -15,27 +15,6 @@
  */
 package brooklyn.entity.container.docker;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.annotation.Nullable;
-import javax.net.ssl.X509TrustManager;
-
-import org.python.google.common.net.HostAndPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -72,6 +51,7 @@ import org.apache.brooklyn.entity.group.Cluster;
 import org.apache.brooklyn.entity.group.DynamicCluster;
 import org.apache.brooklyn.entity.group.DynamicGroup;
 import org.apache.brooklyn.entity.group.DynamicMultiGroup;
+import org.apache.brooklyn.entity.group.zoneaware.BalancingNodePlacementStrategy;
 import org.apache.brooklyn.entity.machine.MachineAttributes;
 import org.apache.brooklyn.entity.software.base.SoftwareProcess;
 import org.apache.brooklyn.entity.software.base.SoftwareProcess.ChildStartableMode;
@@ -84,6 +64,8 @@ import org.apache.brooklyn.util.core.crypto.SecureKeys;
 import org.apache.brooklyn.util.exceptions.Exceptions;
 import org.apache.brooklyn.util.text.Strings;
 import org.apache.brooklyn.util.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import brooklyn.entity.container.DockerAttributes;
 import brooklyn.entity.container.DockerUtils;
@@ -91,7 +73,15 @@ import brooklyn.entity.container.docker.registry.DockerRegistry;
 import brooklyn.entity.container.policy.ContainerHeadroomEnricher;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.location.docker.DockerResolver;
+import brooklyn.location.docker.strategy.DockerHostNodePlacementStrategy;
 import brooklyn.networking.sdn.SdnAttributes;
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 public class DockerInfrastructureImpl extends AbstractApplication implements DockerInfrastructure {
 
@@ -146,7 +136,8 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DockerHost.DOCKER_INFRASTRUCTURE, this)
                 .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
                 .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE)
-                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false);
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false)
+                .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new BalancingNodePlacementStrategy());
         String dockerVersion = config().get(DOCKER_VERSION);
         if (Strings.isNonBlank(dockerVersion)) {
             dockerHostSpec.configure(SoftwareProcess.SUGGESTED_VERSION, dockerVersion);
@@ -162,6 +153,7 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, true)
+                .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new DockerHostNodePlacementStrategy())
                 .displayName("Docker Hosts"));
 
         DynamicGroup fabric = addChild(EntitySpec.create(DynamicGroup.class)
