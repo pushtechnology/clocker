@@ -135,7 +135,8 @@ public class DockerInfrastructureImpl extends BasicStartableImpl implements Dock
                 .configure(DockerHost.DOCKER_INFRASTRUCTURE, this)
                 .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
                 .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE)
-                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false);
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false)
+                .configure(DynamicCluster.REMOVAL_STRATEGY, (Function<Collection<Entity>, Entity>) null);
         String dockerVersion = config().get(DOCKER_VERSION);
         if (Strings.isNonBlank(dockerVersion)) {
             dockerHostSpec.configure(SoftwareProcess.SUGGESTED_VERSION, dockerVersion);
