@@ -5,12 +5,14 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.Math.min;
+import static java.util.Collections.max;
 import static java.util.Collections.sort;
 
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.location.Location;
@@ -57,6 +59,9 @@ public final class DockerHostNodePlacementStrategy implements NodePlacementStrat
             result.add(leastPopulatedLoc);
             locSizes.put(leastPopulatedLoc, locSizes.get(leastPopulatedLoc) + 1);
         }
+
+        LOG.debug("Available locations {}", result);
+
         return result;
     }
 
@@ -80,34 +85,49 @@ public final class DockerHostNodePlacementStrategy implements NodePlacementStrat
 
         final Map<Location, Integer> numToRemovePerLoc = newHashMap();
         final Map<Location, Integer> locSizes = toMutableLocationSizes(currentMembers, ImmutableList.<Location>of());
+        LOG.debug("Current hosts by location {}", locSizes);
 
         for (int i = 0; i < numToRemove; i++) {
-            // TODO Inefficient to loop this many times! But not called with big numbers.
-            Location mostPopulatedLoc = null;
-            int mostPopulatedLocSize = 0;
-            for (Location loc : locSizes.keySet()) {
-                int locSize = locSizes.get(loc);
-                if (locSize > 0 && (mostPopulatedLoc == null || locSize > mostPopulatedLocSize)) {
-                    mostPopulatedLoc = loc;
-                    mostPopulatedLocSize = locSize;
-                }
+            // Find the location with the most entities currently in
+            final Entry<Location, Integer> mostPopulated = max(
+                locSizes.entrySet(),
+                new Comparator<Entry<Location, Integer>>() {
+                    @Override
+                    public int compare(Entry<Location, Integer> entry0, Entry<Location, Integer> entry1) {
+                        return entry0.getValue().compareTo(entry1.getValue());
+                    }
+                });
+
+            assert mostPopulated != null : "mostPopulated=null; currentMembers=" + currentMembers;
+            final Location mostPopulatedLocation = mostPopulated.getKey();
+            final Integer mostPopulatedSize = mostPopulated.getValue();
+
+            // Update the number to remove per location
+            final Integer currentNumberToRemove = numToRemovePerLoc.get(mostPopulatedLocation);
+            if (currentNumberToRemove == null) {
+                numToRemovePerLoc.put(mostPopulatedLocation, 1);
+            }
+            else {
+                numToRemovePerLoc.put(mostPopulatedLocation, currentNumberToRemove + 1);
             }
 
-            assert mostPopulatedLoc != null : "leastPopulatedLoc=null; currentMembers=" + currentMembers;
-            numToRemovePerLoc.put(
-                mostPopulatedLoc,
-                ((numToRemovePerLoc.get(mostPopulatedLoc) == null) ? 0 : numToRemovePerLoc.get(mostPopulatedLoc)) + 1);
-            locSizes.put(mostPopulatedLoc, locSizes.get(mostPopulatedLoc) - 1);
+            // Update the target number per location
+            locSizes.put(mostPopulatedLocation, mostPopulatedSize - 1);
         }
 
+        // Find the entities to remove per location
         final List<Entity> result = newArrayList();
-        for (Map.Entry<Location, Integer> entry : numToRemovePerLoc.entrySet()) {
-            result.addAll(pickNewestEmptyDockerHost(currentMembers.get(entry.getKey()), entry.getValue()));
+        for (Entry<Location, Integer> entry : numToRemovePerLoc.entrySet()) {
+            final Location location = entry.getKey();
+            final Integer numberToRemove = entry.getValue();
+            LOG.error("Looking for {} entities to remove from {}", numberToRemove, location);
+            result.addAll(pickNewestEmptyDockerHost(currentMembers.get(location), numberToRemove));
         }
+
         return result;
     }
 
-    protected Map<Location,Integer> toMutableLocationSizes(
+    private Map<Location,Integer> toMutableLocationSizes(
             Multimap<Location, Entity> currentMembers, Iterable<? extends Location> otherLocs) {
         final Map<Location,Integer> result = newHashMap();
 
@@ -125,22 +145,33 @@ public final class DockerHostNodePlacementStrategy implements NodePlacementStrat
         return result;
     }
 
-    protected Collection<Entity> pickNewestEmptyDockerHost(Collection<Entity> contenders, Integer numToPick) {
+    private Collection<Entity> pickNewestEmptyDockerHost(Collection<Entity> contenders, int numToPick) {
+        LOG.debug("Selecting from {}", contenders);
+
         // choose newest empty docker host that is stoppable; sort so newest is first
-        final List<Entity> stoppables = newArrayList(
+        final List<Entity> candidates = newArrayList(
             filter(
                 filter(
                     contenders,
                     instanceOf(Startable.class)),
                 new EmptyHostPredicate()));
 
-        sort(stoppables, new Comparator<Entity>() {
+        LOG.debug("Candidates for removal {}", candidates);
+
+        sort(candidates, new Comparator<Entity>() {
             @Override
             public int compare(Entity a, Entity b) {
                 return (int) (b.getCreationTime() - a.getCreationTime());
             }
         });
 
-        return stoppables.subList(0, min(numToPick, stoppables.size()));
+        final List<Entity> selected = candidates.subList(0, min(numToPick, candidates.size()));
+        LOG.debug("Selected for removal {}", selected);
+        return selected;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName();
     }
 }
