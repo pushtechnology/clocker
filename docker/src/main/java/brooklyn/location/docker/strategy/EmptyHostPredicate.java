@@ -13,7 +13,7 @@ public final class EmptyHostPredicate implements Predicate<Entity> {
     @Override
     public boolean apply(Entity entity) {
         if (entity != null && entity instanceof DockerHost) {
-            DockerHost host = (DockerHost)entity;
+            final DockerHost host = (DockerHost) entity;
             return host.getDockerContainerList().isEmpty();
         }
         else {
