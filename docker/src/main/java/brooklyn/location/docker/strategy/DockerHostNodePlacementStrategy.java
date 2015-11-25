@@ -120,7 +120,7 @@ public final class DockerHostNodePlacementStrategy implements NodePlacementStrat
         for (Entry<Location, Integer> entry : numToRemovePerLoc.entrySet()) {
             final Location location = entry.getKey();
             final Integer numberToRemove = entry.getValue();
-            LOG.error("Looking for {} entities to remove from {}", numberToRemove, location);
+            LOG.debug("Looking for {} entities to remove from {}", numberToRemove, location);
             result.addAll(pickNewestEmptyDockerHost(currentMembers.get(location), numberToRemove));
         }
 
