@@ -16,6 +16,8 @@ import java.util.Map.Entry;
 
 import org.apache.brooklyn.api.entity.Entity;
 import org.apache.brooklyn.api.location.Location;
+import org.apache.brooklyn.core.entity.Attributes;
+import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.entity.trait.Startable;
 import org.apache.brooklyn.entity.group.DynamicCluster.NodePlacementStrategy;
 import org.apache.brooklyn.entity.group.zoneaware.BalancingNodePlacementStrategy;
@@ -26,8 +28,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 /**
- * Implementation of {@link NodePlacementStrategy} based on {@link BalancingNodePlacementStrategy} but does not remove
- * docker hosts with containers.
+ * Implementation of {@link NodePlacementStrategy} based on {@link BalancingNodePlacementStrategy}. It does not remove
+ * docker hosts with containers. It ignores on-fire entities when selecting a sublocation for additions.
  * @author Matt Champion on 24/11/2015
  */
 public final class DockerHostNodePlacementStrategy implements NodePlacementStrategy {
@@ -41,7 +43,7 @@ public final class DockerHostNodePlacementStrategy implements NodePlacementStrat
         }
 
         final List<Location> result = newArrayList();
-        final Map<Location, Integer> locSizes = toMutableLocationSizes(currentMembers, locs);
+        final Map<Location, Integer> locSizes = toMutableLocationSizesOfHealthyEntities(currentMembers, locs);
 
         for (int i = 0; i < numToAdd; i++) {
             // TODO Inefficient to loop this many times! But not called with big numbers.
@@ -142,6 +144,36 @@ public final class DockerHostNodePlacementStrategy implements NodePlacementStrat
                 result.put(otherLoc, 0);
             }
         }
+        return result;
+    }
+
+    private Map<Location,Integer> toMutableLocationSizesOfHealthyEntities(
+            Multimap<Location, Entity> currentMembers, Iterable<? extends Location> otherLocs) {
+        final Map<Location, Integer> result = newHashMap();
+
+        // Record the number of values for each key in the multimap
+        for (Entry<Location, Entity> entry : currentMembers.entries()) {
+            final Location location = entry.getKey();
+            final Entity entity = entry.getValue();
+            // Increment the location size for healthy entities and keep current size/set to 0 for on-fire entities
+            final int weight = Lifecycle.ON_FIRE.equals(entity.sensors().get(Attributes.SERVICE_STATE_ACTUAL)) ? 0 : 1;
+
+            final Integer currentSize = result.get(location);
+            if (currentSize == null) {
+                result.put(location, weight);
+            }
+            else {
+                result.put(location, currentSize + weight);
+            }
+        }
+
+        // Record 0 for locations not in the multimap
+        for (Location otherLoc : otherLocs) {
+            if (!result.containsKey(otherLoc)) {
+                result.put(otherLoc, 0);
+            }
+        }
+
         return result;
     }
 
