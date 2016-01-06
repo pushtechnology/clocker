@@ -117,7 +117,7 @@ services:
 ### Building from source
 
 <!-- CLOCKER_VERSION_BELOW -->
-The master branch of Clocker is at version [1.1.0-DIFFUSION-5.6.2-2](http://github.com/brooklyncentral/clocker/).
+The master branch of Clocker is at version [1.1.0-DIFFUSION-5.6.3](http://github.com/brooklyncentral/clocker/).
 Build and run this version of Clocker from source as follows:
 
 ```Bash
