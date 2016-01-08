@@ -637,7 +637,22 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
      * @return Extra IP permissions to be configured on this entity's location.
      */
     protected Collection<IpPermission> getIpPermissions() {
-        String localhost = LocalhostExternalIpLoader.getLocalhostIpWithin(Duration.minutes(1)) + "/32";
+        // The current version of LocalhostExternalIpLoader appears broken. Instead of attempting to get the localhost
+        // external IP for the given duration it will block until after the first attempt to lookup the address and the
+        // unblock regardless of success or failure. Simply make a fixed number of attempts until brooklyn is updated.
+        String localhost;
+        try {
+             localhost = LocalhostExternalIpLoader.getLocalhostIpWithin(Duration.seconds(30)) + "/32";
+        }
+        catch (IllegalStateException e) {
+            try {
+                localhost = LocalhostExternalIpLoader.getLocalhostIpWithin(Duration.seconds(30)) + "/32";
+            }
+            catch (IllegalStateException e2) {
+                localhost = LocalhostExternalIpLoader.getLocalhostIpWithin(Duration.seconds(30)) + "/32";
+            }
+        }
+
         IpPermission dockerPort = IpPermission.builder()
                 .ipProtocol(IpProtocol.TCP)
                 .fromPort(sensors().get(DockerHost.DOCKER_PORT))
