@@ -86,7 +86,7 @@ RUN if [ -f /etc/ssh/sshd_config ] ; then \
     echo RSAAuthentication yes >> /etc/sshd_config ; \
   fi ; \
   mkdir /root/.ssh && \
-  echo ${ssh.authorisedKeys} >> /root/.ssh/authorized_keys
+  printf ${ssh.authorisedKeys} >> /root/.ssh/authorized_keys
 [/#if]
 [/#if]
 
