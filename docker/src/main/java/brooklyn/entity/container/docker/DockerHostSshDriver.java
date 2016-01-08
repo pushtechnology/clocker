@@ -112,8 +112,12 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             final DockerHost host = (DockerHost) getEntity();
             final Map<String, Object> sshSubstitutions = MutableMap.copyOf(substitutions);
             final SshMachineLocation machine = host.getDynamicLocation().getMachine();
-            sshSubstitutions.put("ssh", MutableMap.of("authorisedKeys",
-                LocationConfigUtils.getOsCredential(machine.config().getBag()).getPublicKeyData()));
+            sshSubstitutions.put("ssh", MutableMap.of(
+                "authorisedKeys",
+                "\"" +
+                    LocationConfigUtils.getOsCredential(machine.config().getBag())
+                        .getPublicKeyData().replace("\n", "\\n") +
+                    "\""));
 
             // Update the image with the Clocker sshd Dockerfile
             copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE), false, sshSubstitutions);
@@ -143,8 +147,12 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         final DockerHost host = (DockerHost) getEntity();
         templateSubstitutions.putAll(host.getInfrastructure().getConfig(DockerInfrastructure.DOCKERFILE_SUBSTITUTIONS));
         final SshMachineLocation machine = host.getDynamicLocation().getMachine();
-        templateSubstitutions.put("ssh", MutableMap.of("authorisedKeys",
-            LocationConfigUtils.getOsCredential(machine.config().getBag()).getPublicKeyData()));
+        templateSubstitutions.put("ssh", MutableMap.of(
+            "authorisedKeys",
+            "\"" +
+                LocationConfigUtils.getOsCredential(machine.config().getBag())
+                    .getPublicKeyData().replace("\n", "\\n") +
+                "\""));
         return templateSubstitutions;
     }
 
