@@ -18,7 +18,7 @@ FROM ubuntu:14.04
 MAINTAINER Cloudsoft "brooklyn@cloudsoftcorp.com"
 
 # CLOCKER_VERSION_BELOW
-LABEL version="1.1.0-DIFFUSION-5.6.3"
+LABEL version="1.1.0-DIFFUSION-5.6.4"
 
 # Make sure the package repository is up to date
 RUN ( echo "deb http://archive.ubuntu.com/ubuntu trusty main universe" ; echo "deb http://archive.ubuntu.com/ubuntu trusty-updates main universe" ) > /etc/apt/sources.list
