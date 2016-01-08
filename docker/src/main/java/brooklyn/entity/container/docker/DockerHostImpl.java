@@ -67,7 +67,6 @@ import org.apache.brooklyn.api.policy.PolicySpec;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.render.RendererHints;
 import org.apache.brooklyn.core.effector.ssh.SshEffectorTasks;
-import org.apache.brooklyn.core.entity.Attributes;
 import org.apache.brooklyn.core.entity.Entities;
 import org.apache.brooklyn.core.entity.EntityFunctions;
 import org.apache.brooklyn.core.entity.EntityInternal;
@@ -166,7 +165,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
 
         ConfigToAttributes.apply(this, DOCKER_INFRASTRUCTURE);
 
-        EntitySpec<?> dockerContainerSpec = EntitySpec.create(config().get(DOCKER_CONTAINER_SPEC))
+        EntitySpec<DockerContainer> dockerContainerSpec = EntitySpec.create(config().get(DOCKER_CONTAINER_SPEC))
                 .configure(DockerContainer.DOCKER_HOST, this)
                 .configure(DockerContainer.DOCKER_INFRASTRUCTURE, getInfrastructure());
         if (config().get(DockerInfrastructure.HA_POLICY_ENABLE)) {
@@ -654,7 +653,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         permissions.add(dockerSslPort);
 
         if (config().get(SdnAttributes.SDN_ENABLE)) {
-            DockerSdnProvider provider = (DockerSdnProvider) (sensors().get(DockerHost.DOCKER_INFRASTRUCTURE).sensors().get(DockerInfrastructure.SDN_PROVIDER));
+            DockerSdnProvider provider = (DockerSdnProvider) sensors().get(DockerHost.DOCKER_INFRASTRUCTURE).sensors().get(DockerInfrastructure.SDN_PROVIDER);
             Collection<IpPermission> sdnPermissions = provider.getIpPermissions(cidr);
             permissions.addAll(sdnPermissions);
         }
@@ -730,7 +729,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         sensors().set(JCLOUDS_DOCKER_LOCATION, jcloudsLocation);
 
         DockerPortForwarder portForwarder = new DockerPortForwarder();
-        portForwarder.injectManagementContext(getManagementContext());
+        portForwarder.setManagementContext(getManagementContext());
         portForwarder.init(URI.create(jcloudsLocation.getEndpoint()));
         SubnetTier subnetTier = addChild(EntitySpec.create(SubnetTier.class, SubnetTierImpl.class)
                 .configure(SubnetTier.PORT_FORWARDER, portForwarder)
@@ -863,7 +862,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
                             .configure(DockerContainer.DOCKER_INFRASTRUCTURE, getInfrastructure())
                             .configure(DockerContainer.DOCKER_IMAGE_ID, imageId)
                             .configure(DockerContainer.DOCKER_IMAGE_NAME, imageName)
-                            .configure(DockerContainer.LOCATION_FLAGS, MutableMap.of("container", getMachine()));
+                            .configure(DockerContainer.LOCATION_FLAGS, MutableMap.<String, Object>of("container", getMachine()));
 
                     // Create, manage and start the container
                     DockerContainer added = getDockerContainerCluster().addMemberChild(containerSpec);

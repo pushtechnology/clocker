@@ -40,9 +40,9 @@ public class SdnAttributes {
     public static final ConfigKey<Boolean> SDN_ENABLE = ConfigKeys.newBooleanConfigKey("sdn.enable", "Enable Sofware-Defined Networking", Boolean.FALSE);
     public static final ConfigKey<Boolean> SDN_DEBUG = ConfigKeys.newBooleanConfigKey("sdn.debug", "Enable SDN debugging utility installation", Boolean.FALSE);
 
-    public static final ConfigKey<EntitySpec> SDN_PROVIDER_SPEC = ConfigKeys.newConfigKey(EntitySpec.class, "sdn.provider.spec", "SDN provider entity specification");
+    public static final ConfigKey<EntitySpec<SdnProvider>> SDN_PROVIDER_SPEC = ConfigKeys.newConfigKey(new TypeToken<EntitySpec<SdnProvider>>() { }, "sdn.provider.spec", "SDN provider entity specification");
 
-    public static final AttributeSensorAndConfigKey<Entity, Entity> SDN_PROVIDER = ConfigKeys.newSensorAndConfigKey(Entity.class, "sdn.provider.network", "SDN provider network entity");
+    public static final AttributeSensorAndConfigKey<SdnProvider, SdnProvider> SDN_PROVIDER = ConfigKeys.newSensorAndConfigKey(SdnProvider.class, "sdn.provider.network", "SDN provider network entity");
 
     public static final AttributeSensor<List<String>> ATTACHED_NETWORKS = Sensors.newSensor(new TypeToken<List<String>>() { },
             "sdn.networks.attached", "The list of networks that an entity is attached to");

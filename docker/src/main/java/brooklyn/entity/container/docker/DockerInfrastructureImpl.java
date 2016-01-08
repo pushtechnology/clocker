@@ -36,6 +36,8 @@ import org.python.google.common.net.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import brooklyn.networking.sdn.DockerSdnProvider;
+import brooklyn.networking.sdn.SdnProvider;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -182,7 +184,7 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .displayName("Docker Applications"));
 
         if (config().get(SDN_ENABLE) && config().get(SDN_PROVIDER_SPEC) != null) {
-            Entity sdn = addChild(EntitySpec.create(config().get(SDN_PROVIDER_SPEC))
+            SdnProvider sdn = addChild(EntitySpec.create(config().get(SDN_PROVIDER_SPEC))
                     .configure(DockerAttributes.DOCKER_INFRASTRUCTURE, this));
             sensors().set(SDN_PROVIDER, sdn);
 

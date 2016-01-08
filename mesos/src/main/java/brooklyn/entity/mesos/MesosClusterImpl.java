@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import brooklyn.networking.sdn.SdnProvider;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
@@ -146,7 +147,7 @@ public class MesosClusterImpl extends AbstractApplication implements MesosCluste
         }
 
         if (config().get(SDN_ENABLE) && config().get(SDN_PROVIDER_SPEC) != null) {
-            Entity sdn = addChild(EntitySpec.create(config().get(SDN_PROVIDER_SPEC))
+            SdnProvider sdn = addChild(EntitySpec.create(config().get(SDN_PROVIDER_SPEC))
                     .configure(MesosAttributes.MESOS_CLUSTER, this));
             sensors().set(SDN_PROVIDER, sdn);
 
@@ -474,7 +475,7 @@ public class MesosClusterImpl extends AbstractApplication implements MesosCluste
 
             // Setup port forwarding
             MarathonPortForwarder portForwarder = new MarathonPortForwarder();
-            portForwarder.injectManagementContext(getManagementContext());
+            portForwarder.setManagementContext(getManagementContext());
 
             EntitySpec<MesosSlave> slaveSpec = EntitySpec.create(MesosSlave.class)
                     .configure(MesosSlave.MESOS_SLAVE_ID, id)

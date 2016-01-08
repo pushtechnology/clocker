@@ -18,6 +18,7 @@ package brooklyn.entity.mesos;
 import java.util.List;
 import java.util.Map;
 
+import brooklyn.networking.sdn.SdnProvider;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.TypeToken;
 
@@ -69,9 +70,9 @@ public interface MesosCluster extends StartableApplication, LocationOwner<MesosL
     ConfigKey<Boolean> SDN_ENABLE = SdnAttributes.SDN_ENABLE;
 
     @SetFromFlag("sdnProviderSpec")
-    ConfigKey<EntitySpec> SDN_PROVIDER_SPEC = SdnAttributes.SDN_PROVIDER_SPEC;
+    ConfigKey<EntitySpec<SdnProvider>> SDN_PROVIDER_SPEC = SdnAttributes.SDN_PROVIDER_SPEC;
 
-    AttributeSensor<Entity> SDN_PROVIDER = SdnAttributes.SDN_PROVIDER;
+    AttributeSensor<SdnProvider> SDN_PROVIDER = SdnAttributes.SDN_PROVIDER;
 
     AttributeSensor<DynamicGroup> MESOS_SLAVES = Sensors.newSensor(DynamicGroup.class, "mesos.slaves", "Mesos slaves");
     AttributeSensor<DynamicGroup> MESOS_FRAMEWORKS = Sensors.newSensor(DynamicGroup.class, "mesos.frameworks", "Mesos frameworks");

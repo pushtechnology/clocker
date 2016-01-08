@@ -17,6 +17,8 @@ package brooklyn.networking;
 
 import java.util.Map;
 
+import brooklyn.networking.sdn.DockerSdnProvider;
+import brooklyn.networking.sdn.SdnProvider;
 import com.google.common.collect.Maps;
 import com.google.common.reflect.TypeToken;
 
@@ -48,7 +50,7 @@ public interface VirtualNetwork extends BasicStartable {
     AttributeSensorAndConfigKey<Cidr, Cidr> NETWORK_CIDR = ConfigKeys.newSensorAndConfigKey(Cidr.class, "network.cidr", "CIDR for the network segment");
 
     @SetFromFlag("sdn")
-    AttributeSensorAndConfigKey<Entity, Entity> SDN_PROVIDER = SdnAttributes.SDN_PROVIDER;
+    AttributeSensorAndConfigKey<SdnProvider, SdnProvider> SDN_PROVIDER = SdnAttributes.SDN_PROVIDER;
 
     @SetFromFlag("flags")
     ConfigKey<Map<String, Object>> NETWORK_PROVISIONING_FLAGS = ConfigKeys.newConfigKey(
