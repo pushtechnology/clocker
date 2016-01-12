@@ -371,6 +371,11 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 .failOnNonZeroResultCode()
                 .execute();
         }
+        else {
+            copyResource(entity.config().get(DockerInfrastructure.DOCKER_SERVER_CERTIFICATE_PATH), "cert.pem");
+            copyResource(entity.config().get(DockerInfrastructure.DOCKER_SERVER_KEY_PATH), "key.pem");
+            copyResource(entity.config().get(DockerInfrastructure.DOCKER_CA_CERTIFICATE_PATH), "ca.pem");
+        }
 
         //Add the CA cert as an authorised docker CA for the first host.
         //This will be used for docker registry etc.
