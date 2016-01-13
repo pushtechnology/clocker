@@ -117,15 +117,6 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
         sensors().set(DOCKER_CONTAINER_COUNTER, new AtomicInteger(0));
         int initialSize = config().get(DOCKER_HOST_CLUSTER_MIN_SIZE);
 
-        Map<String, String> runtimeFiles = ImmutableMap.of();
-        if (!config().get(DOCKER_GENERATE_TLS_CERTIFICATES)) {
-            runtimeFiles = ImmutableMap.<String, String>builder()
-                    .put(config().get(DOCKER_SERVER_CERTIFICATE_PATH), "cert.pem")
-                    .put(config().get(DOCKER_SERVER_KEY_PATH), "key.pem")
-                    .put(config().get(DOCKER_CA_CERTIFICATE_PATH), "ca.pem")
-                    .build();
-        }
-
         // Try and set the registry URL if configured and not starting local registry
         if (!config().get(DOCKER_SHOULD_START_REGISTRY)) {
             ConfigToAttributes.apply(this, DOCKER_IMAGE_REGISTRY_URL);
@@ -147,7 +138,6 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
 
         EntitySpec<?> dockerHostSpec = EntitySpec.create(config().get(DOCKER_HOST_SPEC))
                 .configure(DockerHost.DOCKER_INFRASTRUCTURE, this)
-                .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
                 .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE)
                 .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false)
                 .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new BalancingNodePlacementStrategy())
