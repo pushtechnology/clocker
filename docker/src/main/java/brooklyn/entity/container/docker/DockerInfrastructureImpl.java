@@ -85,6 +85,7 @@ import brooklyn.entity.container.policy.ContainerHeadroomEnricher;
 import brooklyn.location.docker.DockerLocation;
 import brooklyn.location.docker.DockerResolver;
 import brooklyn.location.docker.strategy.DockerHostNodePlacementStrategy;
+import brooklyn.location.docker.strategy.EmptyDockerHostRemovalStrategy;
 import brooklyn.networking.sdn.SdnAttributes;
 import brooklyn.networking.sdn.SdnProvider;
 import com.google.common.base.Function;
@@ -149,7 +150,8 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
                 .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE)
                 .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false)
-                .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new BalancingNodePlacementStrategy());
+                .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new BalancingNodePlacementStrategy())
+                .configure(DynamicCluster.REMOVAL_STRATEGY, (Function<Collection<Entity>, Entity>) null);
         String dockerVersion = config().get(DOCKER_VERSION);
         if (Strings.isNonBlank(dockerVersion)) {
             dockerHostSpec.configure(SoftwareProcess.SUGGESTED_VERSION, dockerVersion);
@@ -166,6 +168,7 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, true)
                 .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new DockerHostNodePlacementStrategy())
+                .configure(DynamicCluster.REMOVAL_STRATEGY, new EmptyDockerHostRemovalStrategy())
                 .displayName("Docker Hosts"));
 
         DynamicGroup fabric = addChild(EntitySpec.create(DynamicGroup.class)
