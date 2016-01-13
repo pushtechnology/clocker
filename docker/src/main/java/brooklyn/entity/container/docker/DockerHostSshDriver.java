@@ -37,6 +37,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
+import org.apache.brooklyn.core.location.LocationConfigUtils;
+import org.jclouds.net.domain.IpPermission;
+import org.jclouds.net.domain.IpProtocol;
+
 import org.apache.brooklyn.api.location.OsDetails;
 import org.apache.brooklyn.api.mgmt.Task;
 import org.apache.brooklyn.core.effector.ssh.SshEffectorTasks;
@@ -106,8 +110,18 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         }
 
         if (useSsh) {
+            final DockerHost host = (DockerHost) getEntity();
+            final Map<String, Object> sshSubstitutions = MutableMap.copyOf(substitutions);
+            final SshMachineLocation machine = host.getDynamicLocation().getMachine();
+            sshSubstitutions.put("ssh", MutableMap.of(
+                "authorisedKeys",
+                "\"" +
+                    LocationConfigUtils.getOsCredential(machine.config().getBag())
+                        .getPublicKeyData().replace("\n", "\\n") +
+                    "\""));
+
             // Update the image with the Clocker sshd Dockerfile
-            copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE), false, substitutions);
+            copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(name, "Sshd" + DockerUtils.DOCKERFILE), false, sshSubstitutions);
             imageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, name);
             log.info("Created SSHable Dockerfile image with ID {}", imageId);
         }
@@ -120,11 +134,27 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     public String layerSshableImageOn(String fullyQualifiedImageName) {
         checkNotNull(fullyQualifiedImageName, "fullyQualifiedImageName");
         copyTemplate(DockerUtils.SSHD_DOCKERFILE, Os.mergePaths(fullyQualifiedImageName, "Sshd" + DockerUtils.DOCKERFILE),
-                true, ImmutableMap.<String, Object>of("fullyQualifiedImageName", fullyQualifiedImageName));
+                true, getExtraTemplateSubstitutions(fullyQualifiedImageName));
         String sshdImageId = buildDockerfile("Sshd" + DockerUtils.DOCKERFILE, fullyQualifiedImageName);
         log.info("Created SSH-based image from {} with ID {}", fullyQualifiedImageName, sshdImageId);
 
         return sshdImageId;
+    }
+
+    @SuppressWarnings("deprecation")
+    private Map<String, Object> getExtraTemplateSubstitutions(String fullyQualifiedImageName) {
+        final Map<String, Object> templateSubstitutions = MutableMap.<String, Object> of(
+            "fullyQualifiedImageName", fullyQualifiedImageName);
+        final DockerHost host = (DockerHost) getEntity();
+        templateSubstitutions.putAll(host.getInfrastructure().getConfig(DockerInfrastructure.DOCKERFILE_SUBSTITUTIONS));
+        final SshMachineLocation machine = host.getDynamicLocation().getMachine();
+        templateSubstitutions.put("ssh", MutableMap.of(
+            "authorisedKeys",
+            "\"" +
+                LocationConfigUtils.getOsCredential(machine.config().getBag())
+                    .getPublicKeyData().replace("\n", "\\n") +
+                "\""));
+        return templateSubstitutions;
     }
 
     private String buildDockerfileDirectory(String name) {
@@ -281,8 +311,8 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         String osMajorVersion = osVersion.substring(0, osVersion.lastIndexOf("."));
         return chainGroup(
                 alternatives(
-                        sudo("rpm -qa | grep epel-release"),
-                        sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
+                    sudo("rpm -qa | grep epel-release"),
+                    sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
     }
 
     @Override
