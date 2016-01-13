@@ -84,7 +84,7 @@ brooklyn.location.named.Amazon-Ireland = jclouds:aws-ec2:eu-west-1
 
 For more information on setting up locations, including supplying cloud provider credentials, see the
 [_Setting up Locations_ section of Brooklyn Getting Started](https://brooklyn.incubator.apache.org/quickstart/#configuring-a-location),
-and the more detailed [locations guide](https://brooklyn.incubator.apache.org/v/0.8.0-incubating/use/guide/locations/index.html).<!-- BROOKLYN_VERSION -->
+and the more detailed [locations guide](https://brooklyn.incubator.apache.org/v/0.9.0-DIFFUSION-SNAPSHOT/use/guide/locations/index.html).<!-- BROOKLYN_VERSION -->
 The Brooklyn documentation also covers setting up security for the web-console, and configuring users
 and passwords.
 
