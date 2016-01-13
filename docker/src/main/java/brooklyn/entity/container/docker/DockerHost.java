@@ -132,6 +132,9 @@ public interface DockerHost extends MachineEntity, Resizable, HasShortName, Loca
             "docker.host.scanInterval", "Interval between scans of Docker containers", Duration.TEN_SECONDS);
     AttributeSensor<Void> SCAN = Sensors.newSensor(Void.class, "docker.host.scan", "Notification of host scan");
 
+    ConfigKey<Integer> PULL_RETRIES = ConfigKeys.newIntegerConfigKey(
+            "docker.host.build", "The number of attempts taken to run a build or pull Docker command", 3);
+
     AttributeSensor<DynamicCluster> DOCKER_CONTAINER_CLUSTER = Sensors.newSensor(DynamicCluster.class,
             "docker.container.cluster", "The cluster of Docker containers");
     AttributeSensor<JcloudsLocation> JCLOUDS_DOCKER_LOCATION = Sensors.newSensor(JcloudsLocation.class,
