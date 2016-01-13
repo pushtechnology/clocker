@@ -29,7 +29,15 @@ public interface DockerHostDriver extends SoftwareProcessDriver {
     Integer getDockerPort();
 
     /**
-     * Build a Docker image from the given Dockerfile and optional entrypoint script.
+     * Login to a Docker repository
+     * @param username The username to login with
+     * @param email The email to login with
+     * @param password The password to login with
+     */
+    void loginToRepository(String username, String email, String password);
+
+    /**
+     * Build a Docker image from the given Dockerfile.
      * <p>
      * Copies the Dockerfile and script to the host in the {@code name} folder, and
      * uses {@code brooklyn/name} for the registry. The returned ID is required to
