@@ -230,7 +230,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         if (osDetails.isLinux()) {
             String kernelVersion = Strings.getFirstWord(((DockerHost) getEntity()).execCommand("uname -r"));
             String storage = Strings.toLowerCase(entity.config().get(DockerHost.DOCKER_STORAGE_DRIVER));
-            if (!"devicemapper".equals(storage)) { // No kernel changes needed for devicemapper sadness as a servive
+            if (!"devicemapper".equals(storage) && storage != null) { // No kernel changes needed for devicemapper sadness as a servive
                 int present = ((DockerHost) getEntity()).execCommandStatus("modprobe " + storage);
                 if (present != 0) {
                     List<String> commands = MutableList.of();
