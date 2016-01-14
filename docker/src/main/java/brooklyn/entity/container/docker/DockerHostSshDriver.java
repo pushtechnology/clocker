@@ -265,15 +265,11 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             commands.add(INSTALL_CURL);
             if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
                 commands.add(installDockerOnUbuntu());
-            } else if ("centos".equalsIgnoreCase(osDetails.getName()) && osVersion != null && osVersion.startsWith("7")) {
+            } else if ("centos".equalsIgnoreCase(osDetails.getName())) {
                 commands.add("sed -i \"s/Defaults    requiretty//\" /etc/sudoers"); // Allow sudo to be called by Brooklyn
                 commands.add(installPackage(ImmutableMap.of("yum", "docker-" + getVersion()), null));
                 // CentOS 7 docker packages do not depend on lxc and do not use it as the execution environment by default
                 commands.add(installPackage(ImmutableMap.of("yum", "lxc"), null));
-            } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
-                commands.add(ifExecutableElse1("yum", useYum(osVersion, arch, getEpelRelease())));
-                commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
-                commands.add(sudo(format("curl https://get.docker.com/builds/Linux/x86_64/docker-%s -o /usr/bin/docker", getVersion())));
             } else {
                 commands.add(installDockerFallback());
             }
