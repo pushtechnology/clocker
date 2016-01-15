@@ -106,6 +106,9 @@ public interface DockerHost extends MachineEntity, Resizable, HasShortName, Loca
     ConfigKey<String> DOCKER_STORAGE_DRIVER = ConfigKeys.newStringConfigKey("docker.host.driver.storage",
             "The Docker storage driver type ('devicemapper', 'btrfs', 'aufs' or 'overlay', null uses Docker default)");
 
+    ConfigKey<List<String>> DOCKER_STORAGE_OPTIONS = ConfigKeys.newConfigKey(
+        new TypeToken<List<String>>() {}, "docker.host.driver.storage.options", "The Docker storage driver options");
+
     ConfigKey<String> DOCKER_LOGIN_USER = ConfigKeys.newStringConfigKey("docker.host.login.user", "User to login to Dockerhub");
 
     ConfigKey<String> DOCKER_LOGIN_EMAIL = ConfigKeys.newStringConfigKey("docker.host.login.email", "Email to login to Dockerhub");
