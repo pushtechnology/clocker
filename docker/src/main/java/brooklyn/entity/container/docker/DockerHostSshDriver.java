@@ -251,7 +251,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                         commands.add(installPackage("software-properties-common linux-generic-lts-vivid"));
                         executeKernelInstallation(commands);
                     }
-                    if ("centos".equalsIgnoreCase(osDetails.getName())) {
+                    if (isCentOS(osDetails)) {
                         // TODO differentiate between CentOS 6 and 7 and RHEL
                         commands.add(sudo("yum -y --nogpgcheck upgrade kernel"));
                         executeKernelInstallation(commands);
@@ -271,7 +271,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             commands.add(INSTALL_CURL);
             if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
                 commands.add(installDockerOnUbuntu());
-            } else if ("centos".equalsIgnoreCase(osDetails.getName())) {
+            } else if (isCentOS(osDetails)) {
                 commands.add("sed -i \"s/Defaults    requiretty//\" /etc/sudoers"); // Allow sudo to be called by Brooklyn
                 commands.add(installPackage(ImmutableMap.of("yum", "docker-" + getVersion()), null));
                 // CentOS 7 docker packages do not depend on lxc and do not use it as the execution environment by default
@@ -470,5 +470,15 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             .add(otherwise)
             .add("fi")
             .build(), "\n");
+    }
+
+    private static boolean isCentOS(OsDetails osDetails) {
+        if (osDetails != null) {
+            final String name = osDetails.getName();
+            if (name != null) {
+                return name.toLowerCase().startsWith("centos");
+            }
+        }
+        return false;
     }
 }
