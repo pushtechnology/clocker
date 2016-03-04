@@ -18,4 +18,4 @@ FROM centos:6.6
 MAINTAINER Cloudsoft "brooklyn@cloudsoftcorp.com"
 
 # CLOCKER_VERSION_BELOW
-LABEL version="1.1.0-DIFFUSION-5.6.4-5"
+LABEL version="1.1.0-DIFFUSION-5.6.6"
