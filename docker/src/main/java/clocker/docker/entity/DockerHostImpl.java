@@ -759,9 +759,10 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         if (Strings.isNonBlank(registryUrl) && !internalRegistry) {
             String username = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_USERNAME);
             String password = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_PASSWORD);
+            String email = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_EMAIL);
 
-            if (Strings.isNonBlank(username) && Strings.isNonBlank(password)) {
-                runDockerCommand(String.format("login  -e \"fake@example.org\" -u %s -p %s %s", username, password, registryUrl));
+            if (Strings.isNonBlank(username) && Strings.isNonBlank(password) && Strings.isNonBlank(email)) {
+                runDockerCommand(String.format("login  -e \"%s\" -u %s -p %s %s", email, username, password, registryUrl));
             }
         }
     }

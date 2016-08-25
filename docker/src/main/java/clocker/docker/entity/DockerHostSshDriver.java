@@ -364,14 +364,21 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     // TODO --registry-mirror
     private String getDockerRegistryOpts() {
         String registryUrl = entity.config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_URL);
+        if ("https://index.docker.io/v1/".equals(registryUrl)) {
+            // If using dockerhub do not configure anything
+            return null;
+        }
+
         if (Strings.isNonBlank(registryUrl)) {
             return format("--insecure-registry %s", registryUrl);
         }
+
         if (entity.config().get(DockerInfrastructure.DOCKER_SHOULD_START_REGISTRY)) {
             String firstHostname = entity.sensors().get(DynamicGroup.FIRST).sensors().get(Attributes.HOSTNAME);
             Integer registryPort = entity.config().get(DockerInfrastructure.DOCKER_REGISTRY_PORT);
             return format("--insecure-registry %s:%d", firstHostname, registryPort);
         }
+
         return null;
     }
 
