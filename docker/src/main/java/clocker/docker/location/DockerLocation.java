@@ -32,6 +32,7 @@ import clocker.docker.entity.DockerHost;
 import clocker.docker.entity.DockerInfrastructure;
 import clocker.docker.entity.util.DockerAttributes;
 import clocker.docker.location.strategy.DockerAwarePlacementStrategy;
+import clocker.docker.location.strategy.no.host.NoHostStrategy;
 import clocker.docker.networking.location.NetworkProvisioningExtension;
 import clocker.docker.policy.ContainerHeadroomEnricher;
 
@@ -189,6 +190,62 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
         return obtain(Maps.<String,Object>newLinkedHashMap());
     }
 
+    private DockerHost selectHost(Entity entity) throws NoMachinesAvailableException {
+        DockerHost dockerHost = null;
+        do {
+            NoHostStrategy noHostStrategy = infrastructure.config().get(DockerInfrastructure.NO_HOST_STRATEGY);
+
+            // Get the available hosts
+            List<DockerHostLocation> available = getDockerHostLocations();
+            LOG.debug("Placement for: {}", Iterables.toString(Iterables.transform(available, EntityFunctions.id())));
+
+            // Apply placement strategies
+            List<DockerAwarePlacementStrategy> entityStrategies = entity.config().get(DockerAttributes.PLACEMENT_STRATEGIES);
+            if (entityStrategies == null) entityStrategies = ImmutableList.of();
+            for (DockerAwarePlacementStrategy strategy : Iterables.concat(strategies, entityStrategies)) {
+                available = strategy.filterLocations(available, entity);
+                LOG.debug("Placement after {}: {}", strategy, Iterables.toString(Iterables.transform(available, EntityFunctions.id())));
+            }
+
+            try {
+
+                if (available.size() > 0) {
+                    DockerHostLocation machine = available.get(0);
+                    dockerHost = machine.getOwner();
+                }
+                else {
+                    // Get permission to create a new Docker host
+                    if (permit.tryAcquire()) {
+
+                        dockerHost = noHostStrategy.noHosts(getOwner());
+                    }
+                    else {
+                        // Wait until whoever has the permit releases it, and try again
+                        try {
+                            permit.acquire();
+                        }
+                        catch (InterruptedException ie) {
+                            Exceptions.propagate(ie);
+                        }
+                        finally {
+                            permit.release();
+                        }
+                    }
+                }
+            } finally {
+                // Release any placement strategy locks
+                for (DockerAwarePlacementStrategy strategy : Iterables.concat(strategies, entityStrategies)) {
+                    if (strategy instanceof WithMutexes) {
+                        ((WithMutexes) strategy).releaseMutex(entity.getApplicationId());
+                    }
+                }
+            }
+        }
+        while (dockerHost == null);
+
+        return dockerHost;
+    }
+
     @Override
     public MachineLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
         // Check context for entity being deployed
@@ -198,86 +255,18 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
         }
         Entity entity = (Entity) context;
 
-        // Get the available hosts
-        List<DockerHostLocation> available = getDockerHostLocations();
-        LOG.debug("Placement for: {}", Iterables.toString(Iterables.transform(available, EntityFunctions.id())));
-
-        // Apply placement strategies
-        List<DockerAwarePlacementStrategy> entityStrategies = entity.config().get(DockerAttributes.PLACEMENT_STRATEGIES);
-        if (entityStrategies == null) entityStrategies = ImmutableList.of();
-        for (DockerAwarePlacementStrategy strategy : Iterables.concat(strategies, entityStrategies)) {
-            available = strategy.filterLocations(available, entity);
-            LOG.debug("Placement after {}: {}", strategy, Iterables.toString(Iterables.transform(available, EntityFunctions.id())));
-        }
-
-        // Use the provisioning strategy to add a new host
-        DockerHostLocation machine = null;
-        DockerHost dockerHost = null;
-        if (available.size() > 0) {
-            machine = available.get(0);
-            dockerHost = machine.getOwner();
-        } else {
-            // Get permission to create a new Docker host
-            if (permit.tryAcquire()) {
-                try {
-                    // Determine if headroom scaling policy is being used and suspend
-                    Integer headroom = getOwner().config().get(ContainerHeadroomEnricher.CONTAINER_HEADROOM);
-                    Double headroomPercent = getOwner().config().get(ContainerHeadroomEnricher.CONTAINER_HEADROOM_PERCENTAGE);
-                    boolean headroomSet = (headroom != null && headroom > 0) || (headroomPercent != null && headroomPercent > 0d);
-                    Optional<Policy> policy = Iterables.tryFind(getOwner().getDockerHostCluster().policies(), Predicates.instanceOf(AutoScalerPolicy.class));
-                    if (headroomSet && policy.isPresent()) policy.get().suspend();
-
-                    try {
-                        // Resize the host cluster
-                        LOG.info("Provisioning new host");
-                        Entity added = Iterables.getOnlyElement(getOwner().getDockerHostCluster().resizeByDelta(1));
-                        dockerHost = (DockerHost) added;
-                        machine = dockerHost.getDynamicLocation();
-
-                        // Update autoscaler policy with new minimum size and resume
-                        if (headroomSet && policy.isPresent()) {
-                            int currentMin = policy.get().config().get(AutoScalerPolicy.MIN_POOL_SIZE);
-                            LOG.info("Updating autoscaler policy ({}) setting {} to {}",
-                                    new Object[] { policy.get(), AutoScalerPolicy.MIN_POOL_SIZE.getName(), currentMin + 1 });
-                            policy.get().config().set(AutoScalerPolicy.MIN_POOL_SIZE, currentMin + 1);
-                        }
-                    } finally {
-                        if (policy.isPresent()) policy.get().resume();
-                    }
-                } finally {
-                    permit.release();
-                }
-            } else {
-                // Wait until whoever has the permit releases it, and try again
-                try {
-                    permit.acquire();
-                } catch (InterruptedException ie) {
-                    Exceptions.propagate(ie);
-                } finally {
-                    permit.release();
-                }
-                return obtain(flags);
-            }
-        }
+        DockerHost dockerHost = selectHost(entity);
+        DockerHostLocation machine = dockerHost.getDynamicLocation();
 
         // Now wait until the host has started up
         Entities.waitForServiceUp(dockerHost);
 
         // Obtain a new Docker container location, save and return it
-        try {
-            LOG.debug("Obtain a new container from {} for {}", machine, entity);
-            Map<?,?> hostFlags = MutableMap.copyOf(flags);
-            DockerContainerLocation container = machine.obtain(hostFlags);
-            containers.put(machine, container.getId());
-            return container;
-        } finally {
-            // Release any placement strategy locks
-            for (DockerAwarePlacementStrategy strategy : Iterables.concat(strategies, entityStrategies)) {
-                if (strategy instanceof WithMutexes) {
-                    ((WithMutexes) strategy).releaseMutex(entity.getApplicationId());
-                }
-            }
-        }
+        LOG.debug("Obtain a new container from {} for {}", machine, entity);
+        Map<?,?> hostFlags = MutableMap.copyOf(flags);
+        DockerContainerLocation container = machine.obtain(hostFlags);
+        containers.put(machine, container.getId());
+        return container;
     }
 
     @Override
