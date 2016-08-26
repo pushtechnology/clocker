@@ -234,7 +234,6 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 commands.add(installDockerOnUbuntu());
             } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
                 commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
-                commands.add(sudo(format("curl https://get.docker.com/builds/Linux/x86_64/docker-%s -o /usr/bin/docker", getVersion())));
             } else {
                 commands.add(installDockerFallback());
             }
