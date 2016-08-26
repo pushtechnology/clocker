@@ -699,6 +699,10 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
             keyPath = Os.mergePaths(localCertsDir, getId() + "-key.pem");
             getMachine().copyFrom("client-key.pem", keyPath);
         } else {
+            getMachine().copyTo(ResourceUtils.create().getResourceFromUrl(config().get(DockerInfrastructure.DOCKER_SERVER_CERTIFICATE_PATH)), "cert.pem");
+            getMachine().copyTo(ResourceUtils.create().getResourceFromUrl(config().get(DockerInfrastructure.DOCKER_SERVER_KEY_PATH)), "key.pem");
+            getMachine().copyTo(ResourceUtils.create().getResourceFromUrl(config().get(DockerInfrastructure.DOCKER_CA_CERTIFICATE_PATH)), "ca.pem");
+
             certPath = config().get(DockerInfrastructure.DOCKER_CLIENT_CERTIFICATE_PATH);
             keyPath = config().get(DockerInfrastructure.DOCKER_CLIENT_KEY_PATH);
         }
