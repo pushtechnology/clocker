@@ -233,7 +233,6 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
                 commands.add(installDockerOnUbuntu());
             } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
-                commands.add(ifExecutableElse1("yum", useYum(arch, getEpelRelease())));
                 commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
                 commands.add(sudo(format("curl https://get.docker.com/builds/Linux/x86_64/docker-%s -o /usr/bin/docker", getVersion())));
             } else {
@@ -296,13 +295,6 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         if (getEntity().config().get(DockerInfrastructure.USE_JCLOUDS_HOSTNAME_CUSTOMIZER)) {
             JcloudsHostnameCustomizer.instanceOf().customize((JcloudsLocation) provisioner, (ComputeService) null, (JcloudsMachineLocation) location);
         }
-    }
-
-    private String useYum(String arch, String epelRelease) {
-        return chainGroup(
-                alternatives(
-                        sudo("rpm -qa | grep epel-release"),
-                        sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/7/%s/epel-release-%s.noarch.rpm", arch, epelRelease))));
     }
 
     @Override
