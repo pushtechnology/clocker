@@ -740,19 +740,6 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
             LOG.info("SDN agent running: " + agent.sensors().get(SERVICE_UP));
         }
 
-        String imageId = config().get(DOCKER_IMAGE_ID);
-
-        if (Strings.isBlank(imageId)) {
-            String dockerfileUrl = config().get(DockerInfrastructure.DOCKERFILE_URL);
-            String imageName = DockerUtils.imageName(this, dockerfileUrl);
-            imageId = buildImage(dockerfileUrl, null, null, imageName, config().get(DockerHost.DOCKER_USE_SSH), ImmutableMap.<String, Object>of("fullyQualifiedImageName", imageName));
-            sensors().set(DOCKER_IMAGE_NAME, imageName);
-        }
-
-        sensors().set(DOCKER_IMAGE_ID, imageId);
-
-        scan = scanner();
-
         // If a registry URL is configured with credentials then log in
         String registryUrl = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_URL);
         Boolean internalRegistry = config().get(DockerInfrastructure.DOCKER_SHOULD_START_REGISTRY);
@@ -765,6 +752,19 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
                 runDockerCommand(String.format("login  -e \"%s\" -u %s -p %s %s", email, username, password, registryUrl));
             }
         }
+
+        String imageId = config().get(DOCKER_IMAGE_ID);
+
+        if (Strings.isBlank(imageId)) {
+            String dockerfileUrl = config().get(DockerInfrastructure.DOCKERFILE_URL);
+            String imageName = DockerUtils.imageName(this, dockerfileUrl);
+            imageId = buildImage(dockerfileUrl, null, null, imageName, config().get(DockerHost.DOCKER_USE_SSH), ImmutableMap.<String, Object>of("fullyQualifiedImageName", imageName));
+            sensors().set(DOCKER_IMAGE_NAME, imageName);
+        }
+
+        sensors().set(DOCKER_IMAGE_ID, imageId);
+
+        scan = scanner();
     }
 
     private FunctionFeed scanner() {
