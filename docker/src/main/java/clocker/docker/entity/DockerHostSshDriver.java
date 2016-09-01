@@ -458,7 +458,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         // SystemD
         boolean dockerTen = VersionComparator.getInstance().compare(getVersion(), "1.10") >= 0;
         String service = Os.mergePaths(getInstallDir(), "docker.service");
-        copyTemplate("classpath://clocker/docker/entity/docker.service", service, true, ImmutableMap.of("args", argv, "daemon", dockerTen ? "daemon" : "-d"));
+        copyTemplate("classpath://clocker/docker/entity/docker.service", service, true, ImmutableMap.of("args", argv, "daemon", dockerTen || centos ? "daemon" : "-d"));
         newScript(CUSTOMIZING + "-systemd")
                 .body.append(
                         chain(
