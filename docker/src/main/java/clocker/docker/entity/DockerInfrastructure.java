@@ -157,6 +157,8 @@ public interface DockerInfrastructure extends StartableApplication, Resizable, L
     @SetFromFlag("etcdVersion")
     ConfigKey<String> ETCD_VERSION = ConfigKeys.newStringConfigKey("etcd.version", "The Etcd version number", "2.3.1");
 
+    ConfigKey<Boolean> ENABLE_ETCD_CLUSTER = ConfigKeys.newBooleanConfigKey("etcd.enable", "Whether to use any Etcd cluster", Boolean.TRUE);
+
     ConfigKey<Boolean> EXTERNAL_ETCD_CLUSTER = ConfigKeys.newBooleanConfigKey("etcd.external", "Whether to use an external Etcd cluster", Boolean.FALSE);
     ConfigKey<Integer> EXTERNAL_ETCD_INITIAL_SIZE = ConfigKeys.newIntegerConfigKey("etcd.external.initialSize", "The initial size of the external Etcd cluster");
     AttributeSensorAndConfigKey<String, String> EXTERNAL_ETCD_URL = ConfigKeys.newStringSensorAndConfigKey("etcd.external.url", "The URL for the external Etcd cluster (if configured, no cluster will be provisioned)");

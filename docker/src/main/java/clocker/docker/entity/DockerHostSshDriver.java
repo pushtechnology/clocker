@@ -218,12 +218,15 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 }
             }
 
-            // Create EtcdNode for this host
-            EtcdCluster etcd = ((DockerHost) getEntity()).getInfrastructure().sensors().get(DockerInfrastructure.ETCD_CLUSTER);
-            EtcdNode node = (EtcdNode) etcd.addNode(getMachine(), Maps.newHashMap());
-            node.start(ImmutableList.of(getMachine()));
-            getEntity().sensors().set(DockerHost.ETCD_NODE, node);
-            Entities.waitForServiceUp(node);
+            final DockerInfrastructure infrastructure = ((DockerHost) getEntity()).getInfrastructure();
+            if (Boolean.TRUE.equals(infrastructure.config().get(DockerInfrastructure.ENABLE_ETCD_CLUSTER))) {
+                // Create EtcdNode for this host
+                EtcdCluster etcd = infrastructure.sensors().get(DockerInfrastructure.ETCD_CLUSTER);
+                EtcdNode node = (EtcdNode) etcd.addNode(getMachine(), Maps.newHashMap());
+                node.start(ImmutableList.of(getMachine()));
+                getEntity().sensors().set(DockerHost.ETCD_NODE, node);
+                Entities.waitForServiceUp(node);
+            }
         }
 
         // Generate Docker install commands
@@ -420,16 +423,12 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 .execute();
 
         // Docker daemon startup arguments
-        EtcdNode etcdNode = getEntity().sensors().get(DockerHost.ETCD_NODE);
-        HostAndPort etcdAuthority = HostAndPort.fromParts(etcdNode.sensors().get(Attributes.SUBNET_ADDRESS), etcdNode.sensors().get(EtcdNode.ETCD_CLIENT_PORT));
 
         List<String> args = MutableList.of(
                 centos ? "--selinux-enabled" : null,
                 "--userland-proxy=false",
                 format("-H tcp://0.0.0.0:%d", getDockerPort()),
                 "-H unix:///var/run/docker.sock",
-                format("--cluster-store=etcd://%s", etcdAuthority.toString()),
-                format("--cluster-advertise=%s:%d", getEntity().sensors().get(Attributes.SUBNET_ADDRESS), getDockerPort()),
                 getStorageOpts(),
                 getDockerRegistryOpts(),
                 "--tlsverify",
@@ -437,6 +436,16 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 format("--tlscert=%s/cert.pem", getRunDir()),
                 format("--tlskey=%s/key.pem", getRunDir()),
                 format("--tlscacert=%s/ca.pem", getRunDir()));
+
+        final DockerInfrastructure infrastructure = ((DockerHost) getEntity()).getInfrastructure();
+        if (Boolean.TRUE.equals(infrastructure.config().get(DockerInfrastructure.ENABLE_ETCD_CLUSTER))) {
+            EtcdNode etcdNode = getEntity().sensors().get(DockerHost.ETCD_NODE);
+            HostAndPort etcdAuthority = HostAndPort.fromParts(etcdNode.sensors().get(Attributes.SUBNET_ADDRESS), etcdNode.sensors().get(EtcdNode.ETCD_CLIENT_PORT));
+
+            args.add(format("--cluster-store=etcd://%s", etcdAuthority.toString()));
+            args.add(format("--cluster-advertise=%s:%d", getEntity().sensors().get(Attributes.SUBNET_ADDRESS), getDockerPort()));
+        }
+
         String argv = Joiner.on(" ").skipNulls().join(args);
         log.debug("Docker daemon args: {}", argv);
 
