@@ -233,7 +233,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
                 commands.add(installDockerOnUbuntu());
             } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
-                commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
+                commands.add(installPackage(ImmutableMap.of("yum", "docker-" + super.getVersion()), null));
             } else {
                 commands.add(installDockerFallback());
             }
@@ -301,6 +301,9 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         String version = super.getVersion();
         if (version.matches("^[0-9]+\\.[0-9]+$")) {
             version += ".0"; // Append minor version
+        }
+        else if (version.matches("[0-9]\\.[0-9]\\.[0-9]-[0-9]+\\.el7\\.centos")) {
+            return version.substring(0, 5);
         }
         return version;
     }
@@ -458,7 +461,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         // SystemD
         boolean dockerTen = VersionComparator.getInstance().compare(getVersion(), "1.10") >= 0;
         String service = Os.mergePaths(getInstallDir(), "docker.service");
-        copyTemplate("classpath://clocker/docker/entity/docker.service", service, true, ImmutableMap.of("args", argv, "daemon", dockerTen || centos ? "daemon" : "-d"));
+        copyTemplate("classpath://clocker/docker/entity/docker.service", service, true, ImmutableMap.of("args", argv, "daemon", dockerTen ? "daemon" : "-d"));
         newScript(CUSTOMIZING + "-systemd")
                 .body.append(
                         chain(
