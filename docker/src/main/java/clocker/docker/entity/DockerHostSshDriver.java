@@ -377,8 +377,11 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
     private String getStorageOpts() {
         String driver = getEntity().config().get(DockerHost.DOCKER_STORAGE_DRIVER);
+        List<String> options = getEntity().config().get(DockerHost.DOCKER_STORAGE_OPTIONS);
         if (Strings.isBlank(driver)) {
             return null;
+        } else if (options.size() > 0) {
+            return "-s " + Strings.toLowerCase(driver) + " --storage-opt " + Strings.join(options, " --storage-opt ");
         } else {
             return "-s " + Strings.toLowerCase(driver);
         }
