@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import clocker.docker.entity.DockerHost;
+import clocker.docker.entity.DockerInfrastructure;
 import clocker.docker.entity.util.DockerAttributes;
 import clocker.docker.entity.util.DockerUtils;
 import clocker.docker.location.DockerContainerLocation;
@@ -562,17 +563,19 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
                 entity.sensors().set(SdnAttributes.ATTACHED_NETWORKS, networks);
             }
 
-            // Create isolated application bridge network for port forwarding
-            synchronized (getDockerHost().getHostMutex()) {
-                String bridgeNetwork = String.format("%s_%s", entity.getApplicationId(), DockerUtils.BRIDGE_NETWORK).toLowerCase();
-                if (!getDockerHost().runDockerCommand("network ls").contains(bridgeNetwork)) {
-                    getDockerHost().runDockerCommand(String.format("network create --driver bridge " +
+            if (getDockerHost().getInfrastructure().config().get(DockerInfrastructure.ENABLE_ETCD_CLUSTER)) {
+                // Create isolated application bridge network for port forwarding
+                synchronized (getDockerHost().getHostMutex()) {
+                    String bridgeNetwork = String.format("%s_%s", entity.getApplicationId(), DockerUtils.BRIDGE_NETWORK).toLowerCase();
+                    if (!getDockerHost().runDockerCommand("network ls").contains(bridgeNetwork)) {
+                        getDockerHost().runDockerCommand(String.format("network create --driver bridge " +
                             "-o com.docker.network.bridge.enable_ip_masquerade=true " +
                             "-o com.docker.network.bridge.host_binding_ipv4=0.0.0.0 %s", bridgeNetwork));
+                    }
+                    sensors().set(SdnAttributes.BRIDGE_NETWORK_ID, bridgeNetwork);
+                    entity.sensors().set(SdnAttributes.BRIDGE_NETWORK_ID, bridgeNetwork);
+                    options.networkMode(bridgeNetwork);
                 }
-                sensors().set(SdnAttributes.BRIDGE_NETWORK_ID, bridgeNetwork);
-                entity.sensors().set(SdnAttributes.BRIDGE_NETWORK_ID, bridgeNetwork);
-                options.networkMode(bridgeNetwork);
             }
 
             // Create a new container using jclouds Docker driver
@@ -730,20 +733,23 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
         }
         removeContainer();
 
-        // If this is a Clocker managd container delete networks and location
+        // If this is a Clocker managed container delete networks and location
         Boolean managed = config().get(DockerContainer.MANAGED);
         if (managed) {
-            // Delete application bridge network
-            synchronized (getDockerHost().getHostMutex()) {
-                String bridgeNetwork = sensors().get(SdnAttributes.BRIDGE_NETWORK_ID);
-                try {
-                    int attached = Integer.parseInt(getDockerHost().runDockerCommand(
+            if (getDockerHost().getInfrastructure().config().get(DockerInfrastructure.ENABLE_ETCD_CLUSTER)) {
+                // Delete application bridge network
+                synchronized (getDockerHost().getHostMutex()) {
+                    String bridgeNetwork = sensors().get(SdnAttributes.BRIDGE_NETWORK_ID);
+                    try {
+                        int attached = Integer.parseInt(getDockerHost().runDockerCommand(
                             String.format("network inspect --format=\"{{ len .Containers }}\" %s", bridgeNetwork)));
-                    if (attached == 0) {
-                        getDockerHost().runDockerCommand(String.format("network rm %s", bridgeNetwork));
+                        if (attached == 0) {
+                            getDockerHost().runDockerCommand(String.format("network rm %s", bridgeNetwork));
+                        }
                     }
-                } catch (IllegalStateException ise) {
-                    LOG.warn("Error trying to remove bridge network {}: {}", bridgeNetwork, ise);
+                    catch (IllegalStateException ise) {
+                        LOG.warn("Error trying to remove bridge network {}: {}", bridgeNetwork, ise);
+                    }
                 }
             }
 
