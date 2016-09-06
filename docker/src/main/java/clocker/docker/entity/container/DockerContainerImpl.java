@@ -659,7 +659,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     }
 
     @Override
-    public void start(Collection<? extends Location> locs) {
+    public synchronized void start(Collection<? extends Location> locs) {
         addLocations(locs);
         List<Location> locations = MutableList.copyOf(Locations.getLocationsCheckingAncestors(locs, this));
 
@@ -706,7 +706,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         Lifecycle state = sensors().get(SERVICE_STATE_ACTUAL);
         if (Lifecycle.STOPPING.equals(state) || Lifecycle.STOPPED.equals(state)) {
             LOG.debug("Ignoring request to stop {} when it is already {}", this, state);

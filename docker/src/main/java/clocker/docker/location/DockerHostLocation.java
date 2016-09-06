@@ -26,8 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +59,10 @@ import org.apache.brooklyn.api.mgmt.ManagementContext.PropertiesReloadListener;
 import org.apache.brooklyn.config.ConfigKey;
 import org.apache.brooklyn.core.config.ConfigKeys;
 import org.apache.brooklyn.core.config.Sanitizer;
+import org.apache.brooklyn.core.entity.Attributes;
 import org.apache.brooklyn.core.entity.Entities;
 import org.apache.brooklyn.core.entity.EntityInternal;
+import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.entity.trait.Startable;
 import org.apache.brooklyn.core.location.AbstractLocation;
 import org.apache.brooklyn.core.location.BasicLocationDefinition;
@@ -98,7 +99,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
     @SetFromFlag("locationRegistrationId")
     private String locationRegistrationId;
 
-    private transient ReadWriteLock lock = new ReentrantReadWriteLock();
+    private transient final Lock lock = new ReentrantLock();
     private transient DockerHost dockerHost;
     private transient SshMachineLocation machine;
     private transient PortForwarder portForwarder;
@@ -196,9 +197,30 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
         return obtain(Maps.<String,Object>newLinkedHashMap());
     }
 
+    private void waitForHostStart() throws NoMachinesAvailableException {
+        Lifecycle state;
+        while ((state = dockerHost.sensors().get(Attributes.SERVICE_STATE_ACTUAL)) != Lifecycle.RUNNING) {
+            if (Lifecycle.STOPPING.equals(state) ||
+                Lifecycle.STOPPED.equals(state) ||
+                Lifecycle.DESTROYED.equals(state)) {
+
+                throw new NoMachinesAvailableException("Docker host stopping when waiting for it to start");
+            }
+
+            try {
+                Thread.sleep(1000L);
+            }
+            catch (InterruptedException e) {
+                throw new NoMachinesAvailableException("Interrupted while waiting for Docker host to start", e);
+            }
+        }
+    }
+
     @Override
     public DockerContainerLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
-        lock.readLock().lock();
+        waitForHostStart();
+
+        lock.lock();
         try {
             // Lookup entity from context or flags
             Object context = flags.get(LocationConfigKeys.CALLER_CONTEXT.getName());
@@ -369,7 +391,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
             return dockerContainer.getDynamicLocation();
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -411,7 +433,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
     @Override
     public void release(DockerContainerLocation machine) {
-        lock.readLock().lock();
+        lock.lock();
         try {
             LOG.info("Releasing {}", machine);
 
@@ -434,7 +456,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
                 Entities.unmanage(container);
             }
         } finally {
-            lock.readLock().unlock();
+            lock.unlock();
         }
     }
 
@@ -498,7 +520,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
     }
 
     public Lock getLock() {
-        return lock.writeLock();
+        return lock;
     }
 
     @Override
