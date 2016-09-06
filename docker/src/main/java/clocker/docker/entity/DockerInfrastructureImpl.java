@@ -15,6 +15,7 @@
  */
 package clocker.docker.entity;
 
+import clocker.docker.location.strategy.DockerHostNodePlacementStrategy;
 import io.brooklyn.entity.nosql.etcd.EtcdCluster;
 
 import java.io.IOException;
@@ -150,7 +151,8 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
         EntitySpec<?> dockerHostSpec = EntitySpec.create(config().get(DOCKER_HOST_SPEC));
         dockerHostSpec.configure(DockerHost.DOCKER_INFRASTRUCTURE, this)
                 .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
-                .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE);
+                .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE)
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false);
         String dockerVersion = config().get(DOCKER_VERSION);
         if (Strings.isNonBlank(dockerVersion)) {
             dockerHostSpec.configure(SoftwareProcess.SUGGESTED_VERSION, dockerVersion);
@@ -166,6 +168,8 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DynamicCluster.MEMBER_SPEC, dockerHostSpec)
                 .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, true)
+                .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new DockerHostNodePlacementStrategy())
                 .configure(BrooklynCampConstants.PLAN_ID, "docker-hosts")
                 .displayName("Docker Hosts"));
 
