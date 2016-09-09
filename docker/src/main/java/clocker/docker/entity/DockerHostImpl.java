@@ -574,7 +574,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     protected Collection<IpPermission> getIpPermissions() {
         List<IpPermission> permissions = MutableList.of();
 
-        String publicIpCidr = LocalhostExternalIpLoader.getLocalhostIpWithin(Duration.minutes(1)) + "/32";
+        String publicIpCidr = LocalhostExternalIpLoader.getLocalhostIpWithin(Duration.FIVE_MINUTES) + "/32";
         permissions.addAll(getClockerPermisionsForCIDR(publicIpCidr));
 
         if (config().get(ADD_LOCALHOST_PERMISSION)) {
