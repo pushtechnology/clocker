@@ -15,6 +15,8 @@
  */
 package clocker.docker.entity;
 
+import clocker.docker.location.strategy.no.host.NoHostStrategy;
+import clocker.docker.location.strategy.no.host.ProvisionHostStrategy;
 import io.brooklyn.entity.nosql.etcd.EtcdCluster;
 
 import java.util.List;
@@ -164,6 +166,9 @@ public interface DockerInfrastructure extends StartableApplication, Resizable, L
 
     ConfigKey<Boolean> EXTERNAL_ETCD_CLUSTER = ConfigKeys.newBooleanConfigKey("etcd.external", "Whether to use an external Etcd cluster", Boolean.FALSE);
     ConfigKey<Integer> EXTERNAL_ETCD_INITIAL_SIZE = ConfigKeys.newIntegerConfigKey("etcd.external.initialSize", "The initial size of the external Etcd cluster");
+
+    ConfigKey<NoHostStrategy> NO_HOST_STRATEGY = ConfigKeys.newConfigKey(NoHostStrategy.class, "docker.no.host.strategy", "Strategy for behaviour when attempting to provision and no host is available", new ProvisionHostStrategy());
+
     AttributeSensorAndConfigKey<String, String> EXTERNAL_ETCD_URL = ConfigKeys.newStringSensorAndConfigKey("etcd.external.url", "The URL for the external Etcd cluster (if configured, no cluster will be provisioned)");
 
     AttributeSensor<EtcdCluster> ETCD_CLUSTER = Sensors.newSensor(EtcdCluster.class, "etcd.cluster", "The EtcdCluster entity for storing state");
