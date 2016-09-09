@@ -420,10 +420,9 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     }
 
     @Override
-    public String selectNewImage(String name) {
+    public void selectNewImage(String name) {
         runDockerCommand("pull " + name);
         sensors().set(DOCKER_IMAGE_ID, name);
-        return "";
     }
 
     @Override
