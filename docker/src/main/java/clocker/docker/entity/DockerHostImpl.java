@@ -740,6 +740,19 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
             LOG.info("SDN agent running: " + agent.sensors().get(SERVICE_UP));
         }
 
+        // If a registry URL is configured with credentials then log in
+        String registryUrl = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_URL);
+        Boolean internalRegistry = config().get(DockerInfrastructure.DOCKER_SHOULD_START_REGISTRY);
+        if (Strings.isNonBlank(registryUrl) && !internalRegistry) {
+            String username = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_USERNAME);
+            String password = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_PASSWORD);
+            String email = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_EMAIL);
+
+            if (Strings.isNonBlank(username) && Strings.isNonBlank(password) && Strings.isNonBlank(email)) {
+                runDockerCommand(String.format("login  -e \"%s\" -u %s -p %s %s", email, username, password, registryUrl));
+            }
+        }
+
         String imageId = config().get(DOCKER_IMAGE_ID);
 
         if (Strings.isBlank(imageId)) {
@@ -752,18 +765,6 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         sensors().set(DOCKER_IMAGE_ID, imageId);
 
         scan = scanner();
-
-        // If a registry URL is configured with credentials then log in
-        String registryUrl = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_URL);
-        Boolean internalRegistry = config().get(DockerInfrastructure.DOCKER_SHOULD_START_REGISTRY);
-        if (Strings.isNonBlank(registryUrl) && !internalRegistry) {
-            String username = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_USERNAME);
-            String password = config().get(DockerInfrastructure.DOCKER_IMAGE_REGISTRY_PASSWORD);
-
-            if (Strings.isNonBlank(username) && Strings.isNonBlank(password)) {
-                runDockerCommand(String.format("login  -e \"fake@example.org\" -u %s -p %s %s", username, password, registryUrl));
-            }
-        }
     }
 
     private FunctionFeed scanner() {

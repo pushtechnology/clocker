@@ -150,6 +150,9 @@ public interface DockerInfrastructure extends StartableApplication, Resizable, L
     @SetFromFlag("registryPassword")
     ConfigKey<String> DOCKER_IMAGE_REGISTRY_PASSWORD = ConfigKeys.newStringConfigKey("docker.registry.password", "Password for docker registry access");
 
+    @SetFromFlag("registryEmail")
+    ConfigKey<String> DOCKER_IMAGE_REGISTRY_EMAIL = ConfigKeys.newStringConfigKey("docker.registry.email", "Email for docker registry access", "fake@example.org");
+
     AttributeSensor<Entity> DOCKER_IMAGE_REGISTRY = DockerAttributes.DOCKER_IMAGE_REGISTRY;
 
     ConfigKey<Boolean> USE_JCLOUDS_HOSTNAME_CUSTOMIZER = ConfigKeys.newBooleanConfigKey("docker.hostname.customizer", "Fix issues with hostname in some clouds", Boolean.FALSE);
