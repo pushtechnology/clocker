@@ -114,6 +114,9 @@ public interface DockerHost extends MachineEntity, HasShortName, LocationOwner<D
     ConfigKey<String> DOCKER_STORAGE_DRIVER = ConfigKeys.newStringConfigKey("docker.host.driver.storage",
             "The Docker storage driver type ('devicemapper', 'btrfs', 'aufs' or 'overlay', null uses Docker default)");
 
+    ConfigKey<List<String>> DOCKER_STORAGE_OPTIONS = ConfigKeys.newConfigKey(
+        new TypeToken<List<String>>() {}, "docker.host.driver.storage.options", "The Docker storage driver options");
+
     AttributeSensorAndConfigKey<String, String> DOCKER_IMAGE_ID = DockerAttributes.DOCKER_IMAGE_ID;
 
     AttributeSensor<String> DOCKER_IMAGE_NAME = DockerAttributes.DOCKER_IMAGE_NAME;
