@@ -402,6 +402,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         boolean centos = "centos".equalsIgnoreCase(os);
         boolean ubuntu = "ubuntu".equalsIgnoreCase(os);
 
+        // Copy certs from install directory to run directory
         if (entity.config().get(DockerInfrastructure.DOCKER_GENERATE_TLS_CERTIFICATES)) {
             newScript(ImmutableMap.of(NON_STANDARD_LAYOUT, "true"), CUSTOMIZING)
                     .body.append(
@@ -410,6 +411,15 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                             format("cp server-key.pem %s/key.pem", getRunDir()))
                 .failOnNonZeroResultCode()
                 .execute();
+        }
+        else {
+            newScript(ImmutableMap.of(NON_STANDARD_LAYOUT, "true"), CUSTOMIZING)
+                    .body.append(
+                            format("cp ca.pem %s/ca.pem", getRunDir()),
+                            format("cp cert.pem %s/cert.pem", getRunDir()),
+                            format("cp key.pem %s/key.pem", getRunDir()))
+                    .failOnNonZeroResultCode()
+                    .execute();
         }
 
         // Add the CA cert as an authorised docker CA for the first host.
