@@ -277,4 +277,6 @@ public interface DockerHost extends MachineEntity, HasShortName, LocationOwner<D
     String deployArchive(
             @EffectorParam(name="url", description="Archive source URL") String url);
 
+    @Effector(description="Select a new image and return the image ID")
+    String selectNewImage(@EffectorParam(name = "imageName", description = "Name of the image") String name);
 }

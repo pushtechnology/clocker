@@ -28,6 +28,7 @@ import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
+import org.apache.brooklyn.core.annotation.EffectorParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -416,6 +417,13 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         } finally {
             Tasks.resetBlockingDetails();
         }
+    }
+
+    @Override
+    public String selectNewImage(String name) {
+        runDockerCommand("pull " + name);
+        sensors().set(DOCKER_IMAGE_ID, name);
+        return "";
     }
 
     @Override
