@@ -814,7 +814,9 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         }
 
         EtcdNode etcd = sensors().get(ETCD_NODE);
-        DockerUtils.stop(getInfrastructure(), etcd, Duration.THIRTY_SECONDS);
+        if (etcd != null) {
+            DockerUtils.stop(getInfrastructure(), etcd, Duration.THIRTY_SECONDS);
+        }
     }
 
     public void scanContainers() {

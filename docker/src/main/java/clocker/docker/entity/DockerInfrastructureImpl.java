@@ -169,23 +169,25 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(BrooklynCampConstants.PLAN_ID, "docker-hosts")
                 .displayName("Docker Hosts"));
 
-        EntitySpec<?> etcdNodeSpec = EntitySpec.create(config().get(EtcdCluster.ETCD_NODE_SPEC));
-        String etcdVersion = config().get(ETCD_VERSION);
-        if (Strings.isNonBlank(etcdVersion)) {
-            etcdNodeSpec.configure(SoftwareProcess.SUGGESTED_VERSION, etcdVersion);
-        }
-        sensors().set(EtcdCluster.ETCD_NODE_SPEC, etcdNodeSpec);
+        if (Boolean.TRUE.equals(config().get(ENABLE_ETCD_CLUSTER))) {
+            EntitySpec<?> etcdNodeSpec = EntitySpec.create(config().get(EtcdCluster.ETCD_NODE_SPEC));
+            String etcdVersion = config().get(ETCD_VERSION);
+            if (Strings.isNonBlank(etcdVersion)) {
+                etcdNodeSpec.configure(SoftwareProcess.SUGGESTED_VERSION, etcdVersion);
+            }
+            sensors().set(EtcdCluster.ETCD_NODE_SPEC, etcdNodeSpec);
 
-        EtcdCluster etcd = addChild(EntitySpec.create(EtcdCluster.class)
-                .configure(Cluster.INITIAL_SIZE, 0)
-                .configure(EtcdCluster.ETCD_NODE_SPEC, etcdNodeSpec)
-                .configure(EtcdCluster.CLUSTER_NAME, "docker")
-                .configure(EtcdCluster.CLUSTER_TOKEN, "etcd-docker")
-                .configure(DynamicCluster.QUARANTINE_FAILED_ENTITIES, true)
-                .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
-                .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
-                .displayName("Etcd Cluster"));
-        sensors().set(ETCD_CLUSTER, etcd);
+            EtcdCluster etcd = addChild(EntitySpec.create(EtcdCluster.class)
+                    .configure(Cluster.INITIAL_SIZE, 0)
+                    .configure(EtcdCluster.ETCD_NODE_SPEC, etcdNodeSpec)
+                    .configure(EtcdCluster.CLUSTER_NAME, "docker")
+                    .configure(EtcdCluster.CLUSTER_TOKEN, "etcd-docker")
+                    .configure(DynamicCluster.QUARANTINE_FAILED_ENTITIES, true)
+                    .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
+                    .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
+                    .displayName("Etcd Cluster"));
+            sensors().set(ETCD_CLUSTER, etcd);
+        }
 
         DynamicGroup fabric = addChild(EntitySpec.create(DynamicGroup.class)
                 .configure(DynamicGroup.ENTITY_FILTER, Predicates.and(Predicates.instanceOf(DockerContainer.class), EntityPredicates.attributeEqualTo(DockerContainer.DOCKER_INFRASTRUCTURE, this)))
