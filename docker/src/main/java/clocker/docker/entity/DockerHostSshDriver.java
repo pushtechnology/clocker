@@ -425,7 +425,6 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
                 format("--cluster-advertise=%s:%d", getEntity().sensors().get(Attributes.SUBNET_ADDRESS), getDockerPort()),
                 getStorageOpts(),
                 getDockerRegistryOpts(),
-                "--tlsverify",
                 "--tls",
                 format("--tlscert=%s/cert.pem", getRunDir()),
                 format("--tlskey=%s/key.pem", getRunDir()),
