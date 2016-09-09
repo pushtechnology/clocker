@@ -89,6 +89,7 @@ import clocker.docker.entity.util.DockerAttributes;
 import clocker.docker.entity.util.DockerUtils;
 import clocker.docker.location.DockerLocation;
 import clocker.docker.location.DockerResolver;
+import clocker.docker.location.strategy.DockerHostNodePlacementStrategy;
 import clocker.docker.location.strategy.EmptyDockerHostRemovalStrategy;
 import clocker.docker.networking.entity.sdn.util.SdnAttributes;
 import clocker.docker.policy.ContainerHeadroomEnricher;
@@ -150,7 +151,8 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
         dockerHostSpec.configure(DockerHost.DOCKER_INFRASTRUCTURE, this)
                 .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
                 .configure(DynamicCluster.REMOVAL_STRATEGY, (Function<Collection<Entity>, Entity>) null)
-                .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE);
+                .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE)
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, false);
         String dockerVersion = config().get(DOCKER_VERSION);
         if (Strings.isNonBlank(dockerVersion)) {
             dockerHostSpec.configure(SoftwareProcess.SUGGESTED_VERSION, dockerVersion);
@@ -167,6 +169,8 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(DynamicCluster.REMOVAL_STRATEGY, new EmptyDockerHostRemovalStrategy())
                 .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
+                .configure(DynamicCluster.ENABLE_AVAILABILITY_ZONES, true)
+                .configure(DynamicCluster.ZONE_PLACEMENT_STRATEGY, new DockerHostNodePlacementStrategy())
                 .configure(BrooklynCampConstants.PLAN_ID, "docker-hosts")
                 .displayName("Docker Hosts"));
 
