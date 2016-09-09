@@ -15,8 +15,6 @@
  */
 package clocker.docker.entity;
 
-import io.brooklyn.entity.nosql.etcd.EtcdCluster;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -31,27 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.net.ssl.X509TrustManager;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import clocker.docker.entity.container.DockerContainer;
-import clocker.docker.entity.container.registry.DockerRegistry;
-import clocker.docker.entity.util.DockerAttributes;
-import clocker.docker.entity.util.DockerUtils;
-import clocker.docker.location.DockerLocation;
-import clocker.docker.location.DockerResolver;
-import clocker.docker.networking.entity.sdn.util.SdnAttributes;
-import clocker.docker.policy.ContainerHeadroomEnricher;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.net.HostAndPort;
 
 import org.apache.brooklyn.api.entity.Application;
 import org.apache.brooklyn.api.entity.Entity;
@@ -94,6 +71,28 @@ import org.apache.brooklyn.util.exceptions.Exceptions;
 import org.apache.brooklyn.util.text.Strings;
 import org.apache.brooklyn.util.text.VersionComparator;
 import org.apache.brooklyn.util.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.net.HostAndPort;
+
+import clocker.docker.entity.container.DockerContainer;
+import clocker.docker.entity.container.registry.DockerRegistry;
+import clocker.docker.entity.util.DockerAttributes;
+import clocker.docker.entity.util.DockerUtils;
+import clocker.docker.location.DockerLocation;
+import clocker.docker.location.DockerResolver;
+import clocker.docker.location.strategy.EmptyDockerHostRemovalStrategy;
+import clocker.docker.networking.entity.sdn.util.SdnAttributes;
+import clocker.docker.policy.ContainerHeadroomEnricher;
+import io.brooklyn.entity.nosql.etcd.EtcdCluster;
 
 public class DockerInfrastructureImpl extends AbstractApplication implements DockerInfrastructure {
 
@@ -150,6 +149,7 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
         EntitySpec<?> dockerHostSpec = EntitySpec.create(config().get(DOCKER_HOST_SPEC));
         dockerHostSpec.configure(DockerHost.DOCKER_INFRASTRUCTURE, this)
                 .configure(DockerHost.RUNTIME_FILES, runtimeFiles)
+                .configure(DynamicCluster.REMOVAL_STRATEGY, (Function<Collection<Entity>, Entity>) null)
                 .configure(SoftwareProcess.CHILDREN_STARTABLE_MODE, ChildStartableMode.BACKGROUND_LATE);
         String dockerVersion = config().get(DOCKER_VERSION);
         if (Strings.isNonBlank(dockerVersion)) {
@@ -164,6 +164,7 @@ public class DockerInfrastructureImpl extends AbstractApplication implements Doc
                 .configure(Cluster.INITIAL_SIZE, initialSize)
                 .configure(DynamicCluster.QUARANTINE_FAILED_ENTITIES, true)
                 .configure(DynamicCluster.MEMBER_SPEC, dockerHostSpec)
+                .configure(DynamicCluster.REMOVAL_STRATEGY, new EmptyDockerHostRemovalStrategy())
                 .configure(DynamicCluster.RUNNING_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(DynamicCluster.UP_QUORUM_CHECK, QuorumChecks.atLeastOneUnlessEmpty())
                 .configure(BrooklynCampConstants.PLAN_ID, "docker-hosts")
