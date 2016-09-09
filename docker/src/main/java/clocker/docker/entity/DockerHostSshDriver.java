@@ -233,9 +233,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
             if ("ubuntu".equalsIgnoreCase(osDetails.getName())) {
                 commands.add(installDockerOnUbuntu());
             } else if ("centos".equalsIgnoreCase(osDetails.getName())) { // should work for RHEL also?
-                commands.add(ifExecutableElse1("yum", useYum(osVersion, arch, getEpelRelease())));
-                commands.add(installPackage(ImmutableMap.of("yum", "docker-io"), null));
-                commands.add(sudo(format("curl https://get.docker.com/builds/Linux/x86_64/docker-%s -o /usr/bin/docker", getVersion())));
+                commands.add(installPackage(ImmutableMap.of("yum", "docker-" + super.getVersion()), null));
             } else {
                 commands.add(installDockerFallback());
             }
@@ -298,19 +296,14 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         }
     }
 
-    private String useYum(String osVersion, String arch, String epelRelease) {
-        String osMajorVersion = osVersion.substring(0, osVersion.lastIndexOf("."));
-        return chainGroup(
-                alternatives(
-                        sudo("rpm -qa | grep epel-release"),
-                        sudo(format("rpm -Uvh http://dl.fedoraproject.org/pub/epel/%s/%s/epel-release-%s.noarch.rpm", osMajorVersion, arch, epelRelease))));
-    }
-
     @Override
     public String getVersion() {
         String version = super.getVersion();
         if (version.matches("^[0-9]+\\.[0-9]+$")) {
             version += ".0"; // Append minor version
+        }
+        else if (version.matches("[0-9]\\.[0-9]\\.[0-9]-[0-9]+\\.el7\\.centos")) {
+            return version.substring(0, 5);
         }
         return version;
     }
@@ -498,7 +491,6 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     public boolean isRunning() {
         return newScript(CHECK_RUNNING)
                 .body.append(sudo("docker version"))
-                .failOnNonZeroResultCode()
                 .uniqueSshConnection()
                 .execute() == 0;
     }
