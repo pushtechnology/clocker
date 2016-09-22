@@ -421,7 +421,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
 
     @Override
     public void selectNewImage(String name) {
-        final String stdout = runDockerCommand("pull " + name);
+        final String stdout = runDockerCommandTimeout("pull " + name, Duration.minutes(15));
         final String[] lines = stdout.split("\n");
         final String[] parts = lines[lines.length - 3].split(":");
         final String prefix = parts[0];
