@@ -769,7 +769,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
 
             sensors().set(SSH_MACHINE_LOCATION, null);
             Boolean started = config().get(SoftwareProcess.ENTITY_STARTED);
-            if (!started) {
+            if (started == null || !started) {
                 deleteLocation();
             }
         }
