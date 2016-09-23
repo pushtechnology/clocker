@@ -216,8 +216,12 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
                 else {
                     // Get permission to create a new Docker host
                     if (permit.tryAcquire()) {
-
-                        dockerHost = noHostStrategy.noHosts(getOwner());
+                        try {
+                            dockerHost = noHostStrategy.noHosts(getOwner());
+                        }
+                        finally {
+                            permit.release();
+                        }
                     }
                     else {
                         // Wait until whoever has the permit releases it, and try again
