@@ -17,12 +17,11 @@ package clocker.docker.entity;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
+import static java.util.regex.Pattern.compile;
 import static org.apache.brooklyn.util.ssh.BashCommands.INSTALL_CURL;
-import static org.apache.brooklyn.util.ssh.BashCommands.alternatives;
 import static org.apache.brooklyn.util.ssh.BashCommands.chain;
 import static org.apache.brooklyn.util.ssh.BashCommands.chainGroup;
 import static org.apache.brooklyn.util.ssh.BashCommands.ifExecutableElse0;
-import static org.apache.brooklyn.util.ssh.BashCommands.ifExecutableElse1;
 import static org.apache.brooklyn.util.ssh.BashCommands.installPackage;
 import static org.apache.brooklyn.util.ssh.BashCommands.sudo;
 import io.brooklyn.entity.nosql.etcd.EtcdCluster;
@@ -31,6 +30,8 @@ import io.brooklyn.entity.nosql.etcd.EtcdNode;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import clocker.docker.entity.util.DockerUtils;
 import clocker.docker.entity.util.JcloudsHostnameCustomizer;
@@ -79,6 +80,7 @@ import org.apache.brooklyn.util.time.Duration;
 import org.apache.brooklyn.util.time.Time;
 
 public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implements DockerHostDriver {
+    private static final Pattern CENTOS_VERSION_PATTERN = compile("(^[0-9]\\.[0-9]+\\.[0-9])+-[0-9]+\\.el7\\.centos.*$");
 
     public DockerHostSshDriver(DockerHostImpl entity, SshMachineLocation machine) {
         super(entity, machine);
@@ -300,11 +302,14 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     public String getVersion() {
         String version = super.getVersion();
         if (version.matches("^[0-9]+\\.[0-9]+$")) {
-            version += ".0"; // Append minor version
+            return version + ".0"; // Append minor version
         }
-        else if (version.matches("[0-9]\\.[0-9]\\.[0-9]-[0-9]+\\.el7\\.centos")) {
-            return version.substring(0, 5);
+
+        final Matcher matcher = CENTOS_VERSION_PATTERN.matcher(version);
+        if (matcher.matches()) {
+            return matcher.group(1);
         }
+
         return version;
     }
 
