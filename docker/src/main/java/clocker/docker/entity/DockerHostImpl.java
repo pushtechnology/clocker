@@ -15,12 +15,16 @@
  */
 package clocker.docker.entity;
 
+import static clocker.docker.entity.util.DockerUtils.SHA_256;
+import static java.util.Locale.ENGLISH;
+
 import io.brooklyn.entity.nosql.etcd.EtcdNode;
 
 import java.io.File;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -421,11 +425,8 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
 
     @Override
     public void selectNewImage(String name) {
-        final String stdout = runDockerCommandTimeout("pull " + name, Duration.minutes(15));
-        final String[] lines = stdout.split("\n");
-        final String[] parts = lines[lines.length - 3].split(":");
-        final String prefix = parts[0];
-        final String inspect = String.format("inspect --format={{.Id}} %s", prefix);
+        runDockerCommandTimeout("pull " + name, Duration.minutes(15));
+        final String inspect = String.format("inspect --format={{.Id}} %s", name);
         final String imageId = runDockerCommand(inspect);
         sensors().set(DOCKER_IMAGE_ID, DockerUtils.checkId(imageId));
     }
