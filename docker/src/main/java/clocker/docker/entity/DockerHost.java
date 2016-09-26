@@ -154,6 +154,8 @@ public interface DockerHost extends MachineEntity, HasShortName, LocationOwner<D
 
     AttributeSensor<EtcdNode> ETCD_NODE = Sensors.newSensor(EtcdNode.class, "etcd.node", "The EtcdNode attached to this DockerHost");
 
+    AttributeSensor<Boolean> REGISTRY_LOGGED_IN = Sensors.newBooleanSensor("docker.registry.login", "If Docker has been logged into the registry.");
+
     String getLoginPassword();
 
     Integer getDockerPort();
