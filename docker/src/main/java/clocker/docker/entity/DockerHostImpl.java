@@ -767,6 +767,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
 
             if (Strings.isNonBlank(username) && Strings.isNonBlank(password) && Strings.isNonBlank(email)) {
                 runDockerCommand(String.format("login  -e \"%s\" -u %s -p %s %s", email, username, password, registryUrl));
+                sensors().set(REGISTRY_LOGGED_IN, true);
             }
         }
 
