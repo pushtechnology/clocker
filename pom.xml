@@ -49,15 +49,15 @@
 
         <!-- Dependencies -->
         <jclouds.groupId>org.apache.jclouds</jclouds.groupId> <!-- JCLOUDS_GROUPID_VERSION -->
-        <jclouds.version>1.9.1</jclouds.version> <!-- JCLOUDS_VERSION -->
+        <jclouds.version>1.9.2-REAPPT-1.4.1</jclouds.version> <!-- JCLOUDS_VERSION -->
         <jclouds.cloudsoft.groupId>io.cloudsoft.jclouds</jclouds.cloudsoft.groupId>
         <jclouds.docker.groupId>${jclouds.cloudsoft.groupId}</jclouds.docker.groupId>
-        <jclouds.docker.version>1.9.1</jclouds.docker.version>
+        <jclouds.docker.version>1.9.2-cloudsoft.20160630</jclouds.docker.version>
         <karaf.version>4.0.4</karaf.version>
 
         <!-- Testing -->
         <testng.version>6.8</testng.version>
-        <brooklyn.version>0.10.0-REAPPT-1.4.1.1</brooklyn.version> <!-- BROOKLYN_VERSION -->
+        <brooklyn.version>0.10.0-REAPPT-1.4.1</brooklyn.version> <!-- BROOKLYN_VERSION -->
         <includedTestGroups/>
         <excludedTestGroups>Integration,Live,WIP</excludedTestGroups>
 
