@@ -251,7 +251,7 @@ public class DockerLocation extends AbstractLocation implements DockerVirtualLoc
     }
 
     @Override
-    public MachineLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
+    public synchronized MachineLocation obtain(Map<?,?> flags) throws NoMachinesAvailableException {
         // Check context for entity being deployed
         Object context = flags.get(LocationConfigKeys.CALLER_CONTEXT.getName());
         if (context != null && !(context instanceof Entity)) {
