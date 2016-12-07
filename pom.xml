@@ -49,7 +49,7 @@
 
         <!-- Dependencies -->
         <jclouds.groupId>org.apache.jclouds</jclouds.groupId> <!-- JCLOUDS_GROUPID_VERSION -->
-        <jclouds.version>1.9.2-REAPPT-1.4.2-SNAPSHOT</jclouds.version> <!-- JCLOUDS_VERSION -->
+        <jclouds.version>1.9.2-REAPPT-1.4.2</jclouds.version> <!-- JCLOUDS_VERSION -->
         <jclouds.cloudsoft.groupId>io.cloudsoft.jclouds</jclouds.cloudsoft.groupId>
         <jclouds.docker.groupId>${jclouds.cloudsoft.groupId}</jclouds.docker.groupId>
         <jclouds.docker.version>1.9.2-cloudsoft.20160630</jclouds.docker.version>
