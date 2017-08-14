@@ -293,7 +293,6 @@ public class DockerUtils {
         return Optional.fromNullable(target.sensors().get(DockerContainer.DOCKER_CONTAINER_NAME))
                 .or(Optional.fromNullable(target.config().get(DockerContainer.DOCKER_CONTAINER_NAME)))
                 .or(Optional.fromNullable(getContainerNameFromPlan(target)))
-                .or(Optional.fromNullable(target.config().get(DockerContainer.DOCKER_IMAGE_NAME)))
                 .or(Optional.fromNullable(target.getId()))
                 .transform(DockerUtils.ALLOWED)
                 .orNull();
