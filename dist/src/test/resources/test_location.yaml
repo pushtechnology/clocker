@@ -1,6 +1,6 @@
 brooklyn.catalog:
   id: cal1
-  version: 1.3.0-REAPPT-1.4.3 # CLOCKER_VERSION
+  version: 1.3.0-REAPPT-1.4.4-SNAPSHOT # CLOCKER_VERSION
   itemType: location
   name: cal1
   item:
