@@ -531,7 +531,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     @Override
     public void stop() {
         newScript(STOPPING)
-                .body.append(sudo("service docker stop"))
+                .body.append(sudo("systemctl docker stop"))
                 .failOnNonZeroResultCode()
                 .uniqueSshConnection()
                 .execute();
@@ -540,7 +540,7 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
     @Override
     public void launch() {
         newScript(LAUNCHING)
-                .body.append(sudo("service docker start"))
+                .body.append(sudo("systemctl docker start"))
                 .failOnNonZeroResultCode()
                 .uniqueSshConnection()
                 .execute();
