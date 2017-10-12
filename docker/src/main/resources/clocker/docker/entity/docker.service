@@ -4,7 +4,7 @@ Documentation=https://docs.docker.com
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/docker ${daemon} ${args}
+ExecStart=/usr/bin/${cmd} ${args}
 MountFlags=slave
 LimitNOFILE=1048576
 LimitNPROC=1048576

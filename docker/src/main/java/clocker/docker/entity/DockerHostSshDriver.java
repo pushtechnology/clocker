@@ -492,9 +492,22 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
         }
 
         // SystemD
+        boolean dockerCE = VersionComparator.getInstance().compare(getVersion(), "17.03") >= 0;
         boolean dockerTen = VersionComparator.getInstance().compare(getVersion(), "1.10") >= 0;
         String service = Os.mergePaths(getInstallDir(), "docker.service");
-        copyTemplate("classpath://clocker/docker/entity/docker.service", service, true, ImmutableMap.of("args", argv, "daemon", dockerTen ? "daemon" : "-d"));
+
+        // < 1.10
+        String dockerCommand = "docker -d";
+
+        if (dockerCE) {
+            // if >= 17.03
+            dockerCommand = "dockerd";
+        } else if (dockerTen) {
+            // else if >= 1.10
+            dockerCommand = "docker daemon";
+        }
+
+        copyTemplate("classpath://clocker/docker/entity/docker.service", service, true, ImmutableMap.of("args", argv, "cmd", dockerCommand));
         newScript(CUSTOMIZING + "-systemd")
                 .body.append(
                         chain(
