@@ -317,7 +317,7 @@ public class DockerHostLocation extends AbstractLocation implements MachineProvi
 
                 // Tag the image name and create its latch
                 imageLatches.putIfAbsent(imageName, new CountDownLatch(1));
-                dockerHost.runDockerCommand(String.format("tag -f %s %s:latest", imageId, imageName));
+                dockerHost.runDockerCommand(String.format("tag %s %s:latest", imageId, imageName));
             }
 
             // Look up hardware ID
