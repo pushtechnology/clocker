@@ -15,8 +15,8 @@
  */
 package clocker.main;
 
-import io.airlift.command.Cli.CliBuilder;
-import io.airlift.command.Command;
+import io.airlift.airline.Cli.CliBuilder;
+import io.airlift.airline.Command;
 
 import java.util.Arrays;
 

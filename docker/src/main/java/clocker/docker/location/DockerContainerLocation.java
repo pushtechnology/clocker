@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.brooklyn.core.location.dynamic.LocationOwner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,15 +91,27 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
     @SetFromFlag("machine")
     private JcloudsSshMachineLocation machine;
 
-    @SetFromFlag("owner")
-    private DockerContainer dockerContainer;
-
     private SshMachineLocation hostMachine;
 
     @Override
     public void init() {
         super.init();
-        hostMachine = getOwner().getDockerHost().getDynamicLocation().getMachine();
+        DockerContainer owner = getOwner();
+        DockerHost host = owner.getDockerHost();
+        if (host != null) {
+            DockerHostLocation dynamicLocation = host.getDynamicLocation();
+            hostMachine = dynamicLocation.getMachine();
+        }
+    }
+
+    @Override
+    public void onManagementStarted() {
+        super.onManagementStarted();
+
+        DockerContainer owner = getOwner();
+        DockerHost host = owner.getDockerHost();
+        DockerHostLocation dynamicLocation = host.getDynamicLocation();
+        hostMachine = dynamicLocation.getMachine();
     }
 
     @Override
@@ -113,7 +126,7 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
 
     @Override
     public DockerContainer getOwner() {
-        return dockerContainer;
+        return (DockerContainer) config().get(OWNER);
     }
 
     public JcloudsSshMachineLocation getMachine() {
@@ -222,7 +235,7 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
 
     private List<String> getDockerExecCommand(List<String> commands, Map<String,?> env) {
         StringBuilder target = new StringBuilder("docker exec ")
-                .append(dockerContainer.getContainerId())
+                .append(getOwner().getContainerId())
                 .append(" /bin/bash -c '");
         Joiner.on(";").appendTo(target, Iterables.concat(getEnvironemnt(env), Iterables.transform(commands, StringFunctions.trim())));
         target.append("'");
@@ -287,7 +300,7 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
             return super.copyTo(nonPortProps, src, destination);
         } else {
             try {
-                String tmp = Os.mergePaths("/tmp", Joiner.on('-').join(dockerContainer.getId(), Urls.getBasename(destination), Strings.makeRandomId(4)));
+                String tmp = Os.mergePaths("/tmp", Joiner.on('-').join(getOwner().getId(), Urls.getBasename(destination), Strings.makeRandomId(4)));
                 hostMachine.copyTo(nonPortProps, src, tmp);
                 copyFile(tmp, destination);
                 src.close();
@@ -306,7 +319,7 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
         if (entitySsh && dockerSsh) {
             return super.copyTo(nonPortProps, src, destination);
         } else {
-            String tmp = Os.mergePaths("/tmp", Joiner.on('-').join(dockerContainer.getId(), Urls.getBasename(destination), Strings.makeRandomId(4)));
+            String tmp = Os.mergePaths("/tmp", Joiner.on('-').join(getOwner().getId(), Urls.getBasename(destination), Strings.makeRandomId(4)));
             hostMachine.copyTo(nonPortProps, src, tmp);
             copyFile(tmp, destination);
             return 0;
@@ -314,9 +327,9 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
     }
 
     private void copyFile(String src, String dst) {
-        String cp = String.format("cp %s %s:%s", src, dockerContainer.getContainerId(), dst);
+        String cp = String.format("cp %s %s:%s", src, getOwner().getContainerId(), dst);
         String output = getOwner().getDockerHost().runDockerCommand(cp);
-        LOG.info("Copied to {}:{} - result: {}", new Object[] { dockerContainer.getContainerId(), dst, output });
+        LOG.info("Copied to {}:{} - result: {}", new Object[] { getOwner().getContainerId(), dst, output });
     }
 
     @Override
@@ -327,11 +340,11 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
         if (entitySsh && dockerSsh) {
             return super.copyFrom(nonPortProps, remote, local);
         } else {
-            String tmp = Os.mergePaths("/tmp", Joiner.on('-').join(dockerContainer.getId(), Urls.getBasename(local), Strings.makeRandomId(4)));
-            String cp = String.format("cp %s:%s %s", dockerContainer.getContainerId(), remote, tmp);
+            String tmp = Os.mergePaths("/tmp", Joiner.on('-').join(getOwner().getId(), Urls.getBasename(local), Strings.makeRandomId(4)));
+            String cp = String.format("cp %s:%s %s", getOwner().getContainerId(), remote, tmp);
             String output = getOwner().getDockerHost().runDockerCommand(cp);
             hostMachine.copyFrom(nonPortProps, tmp, local);
-            LOG.info("Copying from {}:{} to {} - result: {}", new Object[] { dockerContainer.getContainerId(), remote, local, output });
+            LOG.info("Copying from {}:{} to {} - result: {}", new Object[] { getOwner().getContainerId(), remote, local, output });
             return 0;
         }
     }
@@ -351,9 +364,9 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
         LOG.debug("Close called on Docker container {}: {}", machine, this);
         try {
             machine.close();
-            if (dockerContainer.sensors().get(DockerContainer.SERVICE_UP)) {
-                LOG.info("Stopping Docker container entity for {}: {}", this, dockerContainer);
-                dockerContainer.stop();
+            if (getOwner().sensors().get(DockerContainer.SERVICE_UP)) {
+                LOG.info("Stopping Docker container entity for {}: {}", this, getOwner());
+                getOwner().stop();
             }
             LOG.info("Docker container closed: {}", this);
         } catch (Exception e) {
@@ -367,18 +380,18 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
         return super.string()
                 .add("entity", entity)
                 .add("machine", machine)
-                .add("owner", dockerContainer);
+                .add("owner", getOwner());
     }
 
     @Override
     public String getSubnetHostname() {
-        return dockerContainer.getHostname();
+        return getOwner().getHostname();
     }
 
     @Override
     public Set<String> getPrivateAddresses() {
-        if (dockerContainer.config().get(SdnAttributes.SDN_ENABLE)) {
-            return ImmutableSet.copyOf(dockerContainer.sensors().get(DockerContainer.CONTAINER_ADDRESSES));
+        if (getOwner().config().get(SdnAttributes.SDN_ENABLE)) {
+            return ImmutableSet.copyOf(getOwner().sensors().get(DockerContainer.CONTAINER_ADDRESSES));
         } else {
             return ImmutableSet.of(getSubnetIp());
         }
@@ -386,10 +399,10 @@ public class DockerContainerLocation extends SshMachineLocation implements Suppo
 
     @Override
     public String getSubnetIp() {
-        String containerAddress = dockerContainer.sensors().get(Attributes.SUBNET_ADDRESS);
+        String containerAddress = getOwner().sensors().get(Attributes.SUBNET_ADDRESS);
         if (Strings.isEmpty(containerAddress)) {
-            String containerId = checkNotNull(dockerContainer.getContainerId(), "containerId");
-            containerAddress = dockerContainer.getDockerHost()
+            String containerId = checkNotNull(getOwner().getContainerId(), "containerId");
+            containerAddress = getOwner().getDockerHost()
                     .runDockerCommand("inspect --format={{.NetworkSettings.IPAddress}} " + containerId)
                     .trim();
         }

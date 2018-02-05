@@ -207,7 +207,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
 
     @Override
     public DockerHost getDockerHost() {
-        return (DockerHost) config().get(DOCKER_HOST);
+        return (DockerHost) sensors().get(DOCKER_HOST);
     }
 
     @Override
@@ -524,6 +524,7 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
                 .put(JcloudsLocationConfig.LOGIN_USER, "root")
                 .put(JcloudsLocationConfig.LOGIN_USER_PASSWORD, config().get(DOCKER_LOGIN_PASSWORD))
                 .put(CloudLocationConfig.WAIT_FOR_SSHABLE, useSsh)
+                .put(JcloudsLocationConfig.POLL_FOR_FIRST_REACHABLE_ADDRESS, useSsh)
                 .put(JcloudsLocationConfig.INBOUND_PORTS, options.getInboundPorts())
                 .put(JcloudsLocation.USE_PORT_FORWARDING, true)
                 .put(JcloudsLocation.PORT_FORWARDER, subnetTier.getPortForwarderExtension())

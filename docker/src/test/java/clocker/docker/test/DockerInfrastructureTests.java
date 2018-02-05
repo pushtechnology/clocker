@@ -15,6 +15,7 @@
  */
 package clocker.docker.test;
 
+import org.apache.brooklyn.api.mgmt.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,11 +28,10 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.brooklyn.api.entity.EntitySpec;
 import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.core.entity.Attributes;
-import org.apache.brooklyn.core.entity.factory.ApplicationBuilder;
 import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
 import org.apache.brooklyn.core.test.entity.TestApplication;
 import org.apache.brooklyn.entity.software.base.EmptySoftwareProcess;
-import org.apache.brooklyn.test.EntityTestUtils;
+import org.apache.brooklyn.core.entity.EntityAsserts;
 import org.apache.brooklyn.util.time.Duration;
 
 /**
@@ -54,7 +54,7 @@ public class DockerInfrastructureTests {
         DockerLocation dockerLocation = dockerInfrastructure.getDynamicLocation();
 
         LOG.info("Waiting {} for {} to have started", Duration.TWO_MINUTES, dockerInfrastructure);
-        EntityTestUtils.assertAttributeEqualsEventually(ImmutableMap.of("timeout", Duration.FIVE_MINUTES),
+        EntityAsserts.assertAttributeEqualsEventually(ImmutableMap.of("timeout", Duration.FIVE_MINUTES),
                 dockerInfrastructure, Attributes.SERVICE_UP, true);
         return dockerInfrastructure;
     }
@@ -63,12 +63,14 @@ public class DockerInfrastructureTests {
         DockerInfrastructure dockerInfrastructure = deployAndWaitForDockerInfrastructure(app, location);
         int existingCount = dockerInfrastructure.sensors().get(DockerInfrastructure.DOCKER_CONTAINER_COUNT);
 
-        TestApplication deployment = ApplicationBuilder.newManagedApp(TestApplication.class, app.getManagementContext());
+        EntityManager emgr = app.getManagementContext().getEntityManager();
+        EntitySpec<TestApplication> appSpec = EntitySpec.create(TestApplication.class);
+        TestApplication deployment = emgr.createEntity(appSpec);
         deployment.createAndManageChild(EntitySpec.create(EmptySoftwareProcess.class));
         deployment.start(ImmutableList.of(dockerInfrastructure.getDynamicLocation()));
 
-        EntityTestUtils.assertAttributeEqualsEventually(deployment, Attributes.SERVICE_STATE_ACTUAL, Lifecycle.RUNNING);
-        EntityTestUtils.assertAttributeEqualsEventually(dockerInfrastructure, DockerInfrastructure.DOCKER_CONTAINER_COUNT,
+        EntityAsserts.assertAttributeEqualsEventually(deployment, Attributes.SERVICE_STATE_ACTUAL, Lifecycle.RUNNING);
+        EntityAsserts.assertAttributeEqualsEventually(dockerInfrastructure, DockerInfrastructure.DOCKER_CONTAINER_COUNT,
                 existingCount + 1);
 
         deployment.stop();

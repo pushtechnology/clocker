@@ -18,6 +18,7 @@ package clocker.docker.test;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.brooklyn.api.mgmt.EntityManager;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -32,7 +33,6 @@ import com.google.common.collect.Maps;
 import org.apache.brooklyn.api.entity.EntitySpec;
 import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.api.mgmt.ManagementContext;
-import org.apache.brooklyn.core.entity.factory.ApplicationBuilder;
 import org.apache.brooklyn.core.internal.BrooklynProperties;
 import org.apache.brooklyn.core.mgmt.internal.LocalManagementContext;
 import org.apache.brooklyn.core.test.entity.TestApplication;
@@ -69,7 +69,10 @@ public class DockerOnDockerLiveTest {
         brooklynProperties.remove("brooklyn.ssh.config.scriptHeader");
 
         ctx = new LocalManagementContext(brooklynProperties);
-        app = ApplicationBuilder.newManagedApp(TestApplication.class, ctx);
+        EntityManager emgr = ctx.getEntityManager();
+        EntitySpec<TestApplication> appSpec = EntitySpec.create(TestApplication.class);
+        app = emgr.createEntity(appSpec);
+//        app = ApplicationBuilder.newManagedApp(TestApplication.class, ctx);
     }
 
     protected void runTest(Map<String,?> flags) throws Exception {

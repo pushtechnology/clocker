@@ -429,16 +429,18 @@ public class DockerHostSshDriver extends AbstractSoftwareProcessSshDriver implem
 
         // Add the CA cert as an authorised docker CA for the first host.
         // This will be used for docker registry etc.
-        String firstHost = entity.sensors().get(AbstractGroup.FIRST).sensors().get(Attributes.HOSTNAME);
-        String certsPath = "/etc/docker/certs.d/" + firstHost + ":"+ entity.config().get(DockerInfrastructure.DOCKER_REGISTRY_PORT);
+        if (entity.config().get(DockerInfrastructure.DOCKER_SHOULD_START_REGISTRY)) {
+            String firstHost = entity.sensors().get(AbstractGroup.FIRST).sensors().get(Attributes.HOSTNAME);
+            String certsPath = "/etc/docker/certs.d/" + firstHost + ":"+ entity.config().get(DockerInfrastructure.DOCKER_REGISTRY_PORT);
 
-        newScript(CUSTOMIZING)
-                .body.append(
-                        chainGroup(
-                                sudo("mkdir -p " + certsPath),
-                                sudo("cp ca.pem " + certsPath + "/ca.crt")))
-                .failOnNonZeroResultCode()
-                .execute();
+            newScript(CUSTOMIZING)
+                    .body.append(
+                            chainGroup(
+                                    sudo("mkdir -p " + certsPath),
+                                    sudo("cp ca.pem " + certsPath + "/ca.crt")))
+                    .failOnNonZeroResultCode()
+                    .execute();
+        }
 
         // Docker daemon startup arguments
 

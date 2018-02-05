@@ -1,9 +1,9 @@
 package clocker.docker.location.strategy;
 
-import static com.google.api.client.util.Maps.newHashMap;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.Iterables.filter;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
 import static java.lang.Math.min;
 import static java.util.Collections.sort;
 

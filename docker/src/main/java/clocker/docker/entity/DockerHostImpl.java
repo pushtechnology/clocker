@@ -605,7 +605,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
                 .build();
         permissions.add(dockerPortForwarding);
 
-        if (config().get(DockerInfrastructure.DOCKER_SHOULD_START_REGISTRY) && sensors().get(BasicGroup.FIRST_MEMBER)) {
+        if (config().get(DockerInfrastructure.DOCKER_SHOULD_START_REGISTRY)) {
             IpPermission dockerRegistryPort = IpPermission.builder()
                     .ipProtocol(IpProtocol.TCP)
                     .fromPort(config().get(DockerRegistry.DOCKER_REGISTRY_PORT))

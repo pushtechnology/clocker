@@ -144,12 +144,12 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
         if (sensors().get(MANAGED)) {
             id = getMarathonApplicationId();
             String name = Joiner.on('.').join(Lists.reverse(Splitter.on('/').omitEmptyStrings().splitToList(id)));
-            sensors().set(APPLICATION_ID, id);
+            sensors().set(MarathonTask.APPLICATION_ID, id);
             sensors().set(TASK_NAME, name);
         } else {
             String name = sensors().get(TASK_NAME);
             id =  "/" + name;
-            sensors().set(APPLICATION_ID, id);
+            sensors().set(MarathonTask.APPLICATION_ID, id);
         }
 
         LOG.info("Marathon task {} for: {}", id, sensors().get(ENTITY));
@@ -169,7 +169,7 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
     }
 
     @Override
-    public String getDisplayName() { return String.format("Marathon Task (%s)", sensors().get(APPLICATION_ID)); }
+    public String getDisplayName() { return String.format("Marathon Task (%s)", sensors().get(MarathonTask.APPLICATION_ID)); }
 
     @Override
     public String getIconUrl() { return "classpath://container.png"; }
@@ -191,7 +191,7 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
         
         final boolean managed = Boolean.TRUE.equals(sensors().get(MANAGED));
             
-        String uri = Urls.mergePaths(getFramework().sensors().get(MarathonFramework.FRAMEWORK_URL), "/v2/apps", sensors().get(APPLICATION_ID), "tasks");
+        String uri = Urls.mergePaths(getFramework().sensors().get(MarathonFramework.FRAMEWORK_URL), "/v2/apps", sensors().get(MarathonTask.APPLICATION_ID), "tasks");
         HttpFeed.Builder httpFeedBuilder = HttpFeed.builder()
                 .entity(this)
                 .period(2000, TimeUnit.MILLISECONDS)
@@ -325,7 +325,7 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
             MarathonFramework marathon = (MarathonFramework) sensors().get(FRAMEWORK);
             marathon.sensors().get(MesosFramework.FRAMEWORK_TASKS).addMember(this);
 
-            String id = sensors().get(APPLICATION_ID);
+            String id = sensors().get(MarathonTask.APPLICATION_ID);
             Map<String, Object> flags = getMarathonFlags(entity);
             try {
                 LOG.debug("Starting task {} on {} with flags: {}",
@@ -350,7 +350,7 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
                     StringPredicates.matchesRegex("[a-z0-9]{64}"));
             for (String each : containers) {
                 String env = slave.execCommand(BashCommands.sudo("docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' " + each));
-                Optional<String> found = Iterables.tryFind(Splitter.on(CharMatcher.anyOf("\r\n")).split(env), Predicates.equalTo("MARATHON_APP_ID=" + sensors().get(APPLICATION_ID)));
+                Optional<String> found = Iterables.tryFind(Splitter.on(CharMatcher.anyOf("\r\n")).split(env), Predicates.equalTo("MARATHON_APP_ID=" + sensors().get(MarathonTask.APPLICATION_ID)));
                 if (found.isPresent()) {
                     containerId = each;
                     break;
@@ -404,7 +404,7 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
         deleteLocation();
 
         // Stop and remove the Marathon task
-        String name = sensors().get(APPLICATION_ID);
+        String name = sensors().get(MarathonTask.APPLICATION_ID);
         ((MarathonFramework) getFramework()).stopApplication(name);
 
         super.stop();
@@ -670,7 +670,7 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
 
     public Optional<JsonElement> getApplicationJson() {
         MesosFramework framework = getFramework();
-        String uri = Urls.mergePaths(framework.sensors().get(MarathonFramework.FRAMEWORK_URL), "/v2/apps", sensors().get(APPLICATION_ID));
+        String uri = Urls.mergePaths(framework.sensors().get(MarathonFramework.FRAMEWORK_URL), "/v2/apps", sensors().get(MarathonTask.APPLICATION_ID));
         HttpToolResponse response = HttpTool.httpGet(
                 MesosUtils.buildClient(framework),
                 URI.create(uri),
@@ -731,7 +731,7 @@ public class MarathonTaskImpl extends MesosTaskImpl implements MarathonTask {
                 }
             }
         } else {
-            throw new IllegalStateException("Cannot retrieve application details for " + sensors().get(APPLICATION_ID));
+            throw new IllegalStateException("Cannot retrieve application details for " + sensors().get(MarathonTask.APPLICATION_ID));
         }
 
         // Create our wrapper location around the task

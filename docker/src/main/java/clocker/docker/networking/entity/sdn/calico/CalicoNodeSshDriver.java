@@ -86,7 +86,8 @@ public class CalicoNodeSshDriver extends DockerNetworkAgentSshDriver implements 
     @Override
     public void launch() {
         InetAddress address = getEntity().sensors().get(SdnAgent.SDN_AGENT_ADDRESS);
-        Boolean firstMember = getEntity().sensors().get(AbstractGroup.FIRST_MEMBER);
+//        Boolean firstMember = getEntity().sensors().get(AbstractGroup.FIRST_MEMBER);
+        Boolean firstMember = true;
         LOG.info("Launching {} calico service at {}", Boolean.TRUE.equals(firstMember) ? "first" : "next", address.getHostAddress());
 
         newScript(MutableMap.of(USE_PID_FILE, false), LAUNCHING)

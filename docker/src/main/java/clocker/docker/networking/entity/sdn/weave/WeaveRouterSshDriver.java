@@ -76,7 +76,8 @@ public class WeaveRouterSshDriver extends DockerNetworkAgentSshDriver implements
     @Override
     public void launch() {
         InetAddress address = getEntity().sensors().get(WeaveRouter.SDN_AGENT_ADDRESS);
-        Boolean firstMember = getEntity().sensors().get(AbstractGroup.FIRST_MEMBER);
+//        Boolean firstMember = getEntity().sensors().get(AbstractGroup.FIRST_MEMBER);
+        Boolean firstMember = true;
         Entity first = getEntity().sensors().get(AbstractGroup.FIRST);
         LOG.info("Launching {} Weave service at {}", Boolean.TRUE.equals(firstMember) ? "first" : "next", address.getHostAddress());
 
