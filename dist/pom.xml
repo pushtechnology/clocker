@@ -93,7 +93,7 @@
         <dependency>
             <groupId>org.apache.brooklyn</groupId>
             <artifactId>brooklyn-rest-client</artifactId>
-            <version>${brooklyn.version}</version>
+            <version>${brooklyn.base.version}</version>
             <scope>test</scope>
             <!-- Exclusions added due to maven issue.
                  Whilst this is scope test, maven was still getting the versions from the children.
