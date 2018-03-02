@@ -15,16 +15,12 @@
  */
 package clocker.docker.entity;
 
-import static clocker.docker.entity.util.DockerUtils.SHA_256;
-import static java.util.Locale.ENGLISH;
-
 import io.brooklyn.entity.nosql.etcd.EtcdNode;
 
 import java.io.File;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -32,7 +28,7 @@ import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
-import org.apache.brooklyn.core.annotation.EffectorParam;
+import org.apache.brooklyn.core.location.LocationConfigKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -582,6 +578,24 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     }
 
     /**
+     * If we're on AWS, we need to resolve the internal network address for the security group.
+     * If not, just do what we used to do.
+     * @return The internal network address.
+     */
+    private String getLocalHostAddress() {
+        MachineProvisioningLocation provisioningLocation = getProvisioningLocation();
+        if (provisioningLocation != null &&
+                "aws-ec2".equals(provisioningLocation.config().get(LocationConfigKeys.CLOUD_PROVIDER))) {
+            String hostname = new ResourceUtils(DockerHostImpl.class)
+                    .getResourceAsString("http://169.254.169.254/latest/meta-data/public-hostname");
+            return Networking.resolve(hostname).getHostAddress();
+        }
+        else {
+            return Networking.getLocalHost(true, true, true, true, 250).getHostAddress();
+        }
+    }
+
+    /**
      * @return Extra IP permissions to be configured on this entity's location.
      */
     protected Collection<IpPermission> getIpPermissions() {
@@ -591,7 +605,8 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         permissions.addAll(getClockerPermisionsForCIDR(publicIpCidr));
 
         if (config().get(ADD_LOCALHOST_PERMISSION)) {
-            String localhostAddress = Networking.getLocalHost().getHostAddress();
+            String localhostAddress = getLocalHostAddress();
+
             String localhostCIDR = localhostAddress + "/32";
             if (Strings.isNonEmpty(localhostAddress) && !publicIpCidr.equals(localhostCIDR)) {
                 permissions.addAll(getClockerPermisionsForCIDR(localhostCIDR));
