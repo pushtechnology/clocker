@@ -548,6 +548,7 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
             JcloudsMachineLocation machine = (JcloudsMachineLocation) location;
             JcloudsLocationSecurityGroupCustomizer customizer = JcloudsLocationSecurityGroupCustomizer.getInstance(getApplicationId());
 
+            customizer.getBrooklynCidrBlock();
             // Serialize access across the whole infrastructure as the security groups are a shared resource
             synchronized (getInfrastructure().getInfrastructureMutex()) {
                 LOG.debug("Removing permissions from security groups {}: {}", machine, permissions);
@@ -825,6 +826,9 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         if (scan == null) {
             scan = scanner();
         }
+
+        // This may be a new host - we should add it to the security group
+        configureSecurityGroups();
     }
 
     @Override
