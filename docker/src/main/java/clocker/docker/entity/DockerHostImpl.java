@@ -606,11 +606,16 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         permissions.addAll(getClockerPermisionsForCIDR(publicIpCidr));
 
         if (config().get(ADD_LOCALHOST_PERMISSION)) {
-            String localhostAddress = getLocalHostAddress();
+            try {
+                String localhostAddress = getLocalHostAddress();
 
-            String localhostCIDR = localhostAddress + "/32";
-            if (Strings.isNonEmpty(localhostAddress) && !publicIpCidr.equals(localhostCIDR)) {
-                permissions.addAll(getClockerPermisionsForCIDR(localhostCIDR));
+                String localhostCIDR = localhostAddress + "/32";
+                if (Strings.isNonEmpty(localhostAddress) && !publicIpCidr.equals(localhostCIDR)) {
+                    permissions.addAll(getClockerPermisionsForCIDR(localhostCIDR));
+                }
+            }
+            catch (Exception ex) {
+                LOG.warn("Failed to add localhost permission. " + ex.getMessage());
             }
         }
         IpPermission dockerPortForwarding = IpPermission.builder()
