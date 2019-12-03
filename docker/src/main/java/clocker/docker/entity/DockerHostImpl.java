@@ -944,8 +944,9 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     }
 
     @Override
-    public void purgeFailedContainers() {
+    public int purgeFailedContainers() {
         getDynamicLocation().getLock().lock();
+        int stoppedServices = 0;
         try {
             for (Entity member : ImmutableList.copyOf(getDockerContainerCluster().getMembers())) {
                 final Entity runningEntity = member.sensors().get(DockerContainer.ENTITY);
@@ -958,12 +959,14 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
                 if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
                     // Attempt to stop
                     ServiceStateLogic.setExpectedState(member, Lifecycle.STOPPING);
+                    stoppedServices++;
                 }
             }
         }
         finally {
             getDynamicLocation().getLock().unlock();
         }
+        return stoppedServices;
     }
 
     static {
