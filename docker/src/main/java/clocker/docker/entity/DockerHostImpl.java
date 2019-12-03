@@ -15,6 +15,7 @@
  */
 package clocker.docker.entity;
 
+import clocker.docker.location.DockerContainerLocation;
 import io.brooklyn.entity.nosql.etcd.EtcdNode;
 
 import java.io.File;
@@ -949,17 +950,22 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         int stoppedServices = 0;
         try {
             for (Entity member : ImmutableList.copyOf(getDockerContainerCluster().getMembers())) {
-                final Entity runningEntity = member.sensors().get(DockerContainer.ENTITY);
-                final Lifecycle state = member.sensors().get(SERVICE_STATE_ACTUAL);
-                if (runningEntity != null || Lifecycle.STARTING.equals(state)) {
-                    // If container has an entity or is still starting inspect next
-                    continue;
-                }
+                if (member instanceof DockerContainer) {
+                    final Entity runningEntity = member.sensors().get(DockerContainer.ENTITY);
+                    final Lifecycle state = member.sensors().get(SERVICE_STATE_ACTUAL);
+                    if (runningEntity != null || Lifecycle.STARTING.equals(state)) {
+                        // If container has an entity or is still starting inspect next
+                        continue;
+                    }
 
-                if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
-                    // Attempt to stop
-                    ServiceStateLogic.setExpectedState(member, Lifecycle.STOPPING);
-                    stoppedServices++;
+                    if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
+                        if (attemptToStopContainer((DockerContainer) member)) {
+                            stoppedServices++;
+                        }
+                    }
+                }
+                else {
+                    LOG.warn("{} is not a DockerContainer", member);
                 }
             }
         }
@@ -967,6 +973,25 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
             getDynamicLocation().getLock().unlock();
         }
         return stoppedServices;
+    }
+
+    private boolean attemptToStopContainer(DockerContainer container) {
+        try {
+            final DockerContainerLocation containerLocation = container.getDynamicLocation();
+            if (containerLocation != null) {
+                getDynamicLocation().release(containerLocation);
+                return true;
+            }
+            else {
+                container.stop();
+                Entities.unmanage(container);
+                return true;
+            }
+        }
+        catch (Exception ex) {
+            LOG.warn("Failed to stop container", ex);
+            return false;
+        }
     }
 
     static {
