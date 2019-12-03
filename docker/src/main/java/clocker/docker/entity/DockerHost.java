@@ -288,4 +288,7 @@ public interface DockerHost extends MachineEntity, HasShortName, LocationOwner<D
      */
     @Effector(description="Select a new image")
     void selectNewImage(@EffectorParam(name = "imageName", description = "Name of the image") String name);
+
+    @Effector(description = "Purge docker containers without entities")
+    void purgeFailedContainers();
 }

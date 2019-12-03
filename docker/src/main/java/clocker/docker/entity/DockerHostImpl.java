@@ -943,6 +943,28 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
         if (serviceUpIsRunningFeed != null) serviceUpIsRunningFeed.stop();
     }
 
+    @Override
+    public void purgeFailedContainers() {
+        getDynamicLocation().getLock().lock();
+        try {
+            for (Entity member : ImmutableList.copyOf(getDockerContainerCluster().getMembers())) {
+                final Entity runningEntity = member.sensors().get(DockerContainer.ENTITY);
+                final Lifecycle state = member.sensors().get(SERVICE_STATE_ACTUAL);
+                if (runningEntity != null || Lifecycle.STARTING.equals(state)) {
+                    // If container has an entity or is still starting inspect next
+                    continue;
+                }
+
+                if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
+                    // Attempt to stop
+                    ServiceStateLogic.setExpectedState(member, Lifecycle.STOPPING);
+                }
+            }
+        }
+        finally {
+            getDynamicLocation().getLock().unlock();
+        }
+    }
 
     static {
         RendererHints.register(DOCKER_INFRASTRUCTURE, RendererHints.openWithUrl(DelegateEntity.EntityUrl.entityUrl()));
