@@ -129,6 +129,8 @@ import org.apache.brooklyn.util.text.StringPredicates;
 import org.apache.brooklyn.util.text.Strings;
 import org.apache.brooklyn.util.time.Duration;
 
+import net.jcip.annotations.GuardedBy;
+
 import brooklyn.networking.portforwarding.DockerPortForwarder;
 import brooklyn.networking.subnet.SubnetTier;
 import brooklyn.networking.subnet.SubnetTierImpl;
@@ -947,34 +949,44 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
     @Override
     public int purgeFailedContainers() {
         getDynamicLocation().getLock().lock();
-        int stoppedServices = 0;
+        int stoppedContainers = 0;
         try {
-            for (Entity member : ImmutableList.copyOf(getDockerContainerCluster().getMembers())) {
-                if (member instanceof DockerContainer) {
-                    final Entity runningEntity = member.sensors().get(DockerContainer.ENTITY);
-                    final Lifecycle state = member.sensors().get(SERVICE_STATE_ACTUAL);
-                    if (runningEntity != null || Lifecycle.STARTING.equals(state)) {
-                        // If container has an entity or is still starting inspect next
-                        continue;
-                    }
-
-                    if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
-                        if (attemptToStopContainer((DockerContainer) member)) {
-                            stoppedServices++;
-                        }
-                    }
-                }
-                else {
-                    LOG.warn("{} is not a DockerContainer", member);
-                }
-            }
+            stoppedContainers += attemptToStopContainers(ImmutableList.copyOf(getDockerContainerCluster().getMembers()));
+            // It's expected that all children are members but does not appear to be the case in practice
+            stoppedContainers += attemptToStopContainers(ImmutableList.copyOf(getDockerContainerCluster().getChildren()));
         }
         finally {
             getDynamicLocation().getLock().unlock();
         }
-        return stoppedServices;
+        return stoppedContainers;
     }
 
+    @GuardedBy("getDynamicLocation().getLock()")
+    private int attemptToStopContainers(Iterable<Entity> entities) {
+        int stoppedContainers = 0;
+        for (Entity member : entities) {
+            if (member instanceof DockerContainer) {
+                final Entity runningEntity = member.sensors().get(DockerContainer.ENTITY);
+                final Lifecycle state = member.sensors().get(SERVICE_STATE_ACTUAL);
+                if (runningEntity != null || Lifecycle.STARTING.equals(state)) {
+                    // If container has an entity or is still starting inspect next
+                    continue;
+                }
+
+                if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
+                    if (attemptToStopContainer((DockerContainer) member)) {
+                        stoppedContainers++;
+                    }
+                }
+            }
+            else {
+                LOG.warn("{} is not a DockerContainer", member);
+            }
+        }
+        return stoppedContainers;
+    }
+
+    @GuardedBy("getDynamicLocation().getLock()")
     private boolean attemptToStopContainer(DockerContainer container) {
         try {
             final DockerContainerLocation containerLocation = container.getDynamicLocation();
