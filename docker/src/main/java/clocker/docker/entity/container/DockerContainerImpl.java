@@ -232,19 +232,24 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
         final String containerId = getContainerId();
         LOG.info("Stopping {}", dockerContainerName);
 
-        // Check if the container is running
-        final String running = Strings.trim(getDockerHost().execCommandTimeout(
-            BashCommands.ok(BashCommands.sudo(String.format("docker inspect -f {{.State.Running}} %s", containerId))),
-            Duration.FIVE_MINUTES));
-        final boolean isRunning = Strings.isNonBlank(running) && Boolean.parseBoolean(running);
-
         // Kill the container if it is running
-        if (isRunning) {
+        if (isRunning(containerId)) {
             getDockerHost().runDockerCommand("kill " + containerId);
         }
         else {
             LOG.info("Container {} not running", dockerContainerName);
         }
+    }
+
+    private boolean isRunning(String containerId) {
+        if (containerId == null) {
+            return false;
+        }
+
+        final String running = Strings.trim(getDockerHost().execCommandTimeout(
+            BashCommands.ok(BashCommands.sudo(String.format("docker inspect -f {{.State.Running}} %s", containerId))),
+            Duration.FIVE_MINUTES));
+        return Strings.isNonBlank(running) && Boolean.parseBoolean(running);
     }
 
     @Override
@@ -264,12 +269,20 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
     /**
      * Remove the container from the host.
      * <p>
-     * Should only be called when the container is not running.
+     * Only tries to remove the container if it is not running. Does not fail if it can't be removed.
      */
     private void removeContainer() {
-        String dockerContainerName = sensors().get(DockerContainer.DOCKER_CONTAINER_NAME);
-        LOG.info("Removing {}", dockerContainerName);
-        getDockerHost().runDockerCommand("rm " + getContainerId());
+        final String containerId = getContainerId();
+        final String dockerContainerName = sensors().get(DockerContainer.DOCKER_CONTAINER_NAME);
+        if (!isRunning(containerId)) {
+            LOG.info("Removing {}", dockerContainerName);
+            getDockerHost().execCommandTimeout(
+                BashCommands.ok(BashCommands.sudo(String.format("docker rm %s", containerId))),
+                Duration.FIVE_MINUTES);
+        }
+        else {
+            LOG.info("Container {} can't be removed because it's running", dockerContainerName);
+        }
     }
 
     private DockerTemplateOptions getDockerTemplateOptions() {
@@ -746,8 +759,8 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
         // Stop and remove the Docker container running on the host
         if (getContainerId() != null) {
             shutDown();
+            removeContainer();
         }
-        removeContainer();
 
         // If this is a Clocker managed container delete networks and location
         Boolean managed = config().get(DockerContainer.MANAGED);
