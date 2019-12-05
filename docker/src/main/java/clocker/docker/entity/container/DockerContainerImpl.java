@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.brooklyn.util.ssh.BashCommands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -227,9 +228,23 @@ public class DockerContainerImpl extends BasicStartableImpl implements DockerCon
 
     @Override
     public void shutDown() {
-        String dockerContainerName = sensors().get(DockerContainer.DOCKER_CONTAINER_NAME);
+        final String dockerContainerName = sensors().get(DockerContainer.DOCKER_CONTAINER_NAME);
+        final String containerId = getContainerId();
         LOG.info("Stopping {}", dockerContainerName);
-        getDockerHost().runDockerCommand("kill " + getContainerId());
+
+        // Check if the container is running
+        final String running = Strings.trim(getDockerHost().execCommandTimeout(
+            BashCommands.ok(BashCommands.sudo(String.format("docker inspect -f {{.State.Running}} %s", containerId))),
+            Duration.FIVE_MINUTES));
+        final boolean isRunning = Strings.isNonBlank(running) && Boolean.parseBoolean(running);
+
+        // Kill the container if it is running
+        if (isRunning) {
+            getDockerHost().runDockerCommand("kill " + containerId);
+        }
+        else {
+            LOG.info("Container {} not running", dockerContainerName);
+        }
     }
 
     @Override
