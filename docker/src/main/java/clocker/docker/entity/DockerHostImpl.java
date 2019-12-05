@@ -21,6 +21,7 @@ import io.brooklyn.entity.nosql.etcd.EtcdNode;
 import java.io.File;
 import java.net.URI;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,8 @@ import java.util.concurrent.TimeoutException;
 import javax.annotation.Nullable;
 
 import org.apache.brooklyn.core.location.LocationConfigKeys;
+import org.joda.time.Instant;
+import org.joda.time.ReadableDuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -969,11 +972,19 @@ public class DockerHostImpl extends MachineEntityImpl implements DockerHost {
                 final Entity runningEntity = member.sensors().get(DockerContainer.ENTITY);
                 final Lifecycle state = member.sensors().get(SERVICE_STATE_ACTUAL);
                 if (runningEntity != null || Lifecycle.STARTING.equals(state)) {
-                    // If container has an entity or is still starting inspect next
+                    // If container has an entity or is still starting, inspect next
                     continue;
                 }
-
-                if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
+                else if (Lifecycle.STOPPING.equals(state)) {
+                    // If it has been stopping for more than 5 hours, try to remove then unmanage
+                    final Date stoppingSince = member.sensors().get(SERVICE_STATE_EXPECTED).getTimestamp();
+                    if (stoppingSince.before(Instant.now().minus(org.joda.time.Duration.standardHours(5)).toDate())) {
+                        attemptToStopContainer((DockerContainer) member);
+                        Entities.unmanage(member);
+                    }
+                }
+                else if (Lifecycle.RUNNING.equals(state) || Lifecycle.ON_FIRE.equals(state)) {
+                    // If running or on fire, stop
                     if (attemptToStopContainer((DockerContainer) member)) {
                         stoppedContainers++;
                     }
