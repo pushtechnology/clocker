@@ -18,7 +18,7 @@ FROM ubuntu:12.04
 MAINTAINER Cloudsoft "brooklyn@cloudsoftcorp.com"
 
 # CLOCKER_VERSION_BELOW
-LABEL version="1.3.0-REAPPT-1.4.6-SNAPSHOT"
+LABEL version="1.3.0-REAPPT-1.4.6"
 
 # make sure the package repository is up to date
 RUN ( echo "deb http://archive.ubuntu.com/ubuntu precise main universe" ; echo "deb http://archive.ubuntu.com/ubuntu precise-updates main universe" ) > /etc/apt/sources.list

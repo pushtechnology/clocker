@@ -18,4 +18,4 @@ FROM centos:6.6
 MAINTAINER Cloudsoft "brooklyn@cloudsoftcorp.com"
 
 # CLOCKER_VERSION_BELOW
-LABEL version="1.3.0-REAPPT-1.4.6-SNAPSHOT"
+LABEL version="1.3.0-REAPPT-1.4.6"
